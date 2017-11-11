@@ -1,6 +1,6 @@
 #include "cambadge.h"
 #include "MDD_File_System/FSIO.h"
-// all global variables declared here for easy reference. 
+// all global variables declared here for easy reference.
 // globals.h includes extern declarations - see that file for info on variable usage
 
 volatile unsigned char cam_started, cam_vsync, cam_busy, cam_newframe, cam_wrap,cam_stop;
@@ -15,7 +15,7 @@ unsigned char rxbuf[rxbufsize]; // UART2 receive buffer
 #endif
 
 unsigned char dispx, dispy; // display cursor position ( pixels))
-unsigned short fgcol, bgcol; //foreground & background colours 
+unsigned short fgcol, bgcol; //foreground & background colours
 unsigned int reptimer=0; // auto-repeat timer - set this to zero to disable auto-repeat
 unsigned char butstate, butpress; // current button state, and button-changed flags
 signed int accx, accy, accz; //last accelerometer data
@@ -37,9 +37,9 @@ unsigned char cardmounted, cardinsert;
 FSFILE * fptr; // filesystem file handle
 SearchRec searchfile, searchdir;
 
-// general purpose buffers 
+// general purpose buffers
 
-// union to allow buffer access by bytes or words 
+// union to allow buffer access by bytes or words
 
 typedef union {
     unsigned char bytes[cambufsize];

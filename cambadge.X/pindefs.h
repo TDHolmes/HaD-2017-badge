@@ -1,7 +1,7 @@
-// define pin functions and hardware-specific things like peripheral clocks  
-// as there are various ways of accessing IO, the needed functionality is done using macros 
+// define pin functions and hardware-specific things like peripheral clocks
+// as there are various ways of accessing IO, the needed functionality is done using macros
 // note there are lots of limitations due to pin remapping constraints etc.
-// note that due to silicon errata, (non-RP) IO output on pins shared with PMADDR function 
+// note that due to silicon errata, (non-RP) IO output on pins shared with PMADDR function
 // must be done by enabling the bit in PMAEN and setting the pin state via PMADDR
 
 // front LED
@@ -38,11 +38,11 @@
 
 #define readbatchan 8 // ADC channel for reading battery voltage
 
-//UART1 - expansion header u1tx c5 u1rx c3 
-#define iosetup_uart1 U1RXRbits.U1RXR=7; RPC5Rbits.RPC5R=1;CNPUCbits.CNPUC3=1;// RB1 Rx RB0 TX, pullup on RXD  
+//UART1 - expansion header u1tx c5 u1rx c3
+#define iosetup_uart1 U1RXRbits.U1RXR=7; RPC5Rbits.RPC5R=1;CNPUCbits.CNPUC3=1;// RB1 Rx RB0 TX, pullup on RXD
 
 //UART2 - TTL232 header
-#define iosetup_uart2 U2RXRbits.U2RXR=2; RPB0Rbits.RPB0R=2;CNPUBbits.CNPUB1=1;// RB1 Rx RB0 TX, pullup on RXD  
+#define iosetup_uart2 U2RXRbits.U2RXR=2; RPB0Rbits.RPB0R=2;CNPUBbits.CNPUB1=1;// RB1 Rx RB0 TX, pullup on RXD
 
 // camera
 #define iosetup_cam  T3CKRbits.T3CKR=6; \

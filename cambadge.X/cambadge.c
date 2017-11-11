@@ -1,7 +1,7 @@
 // Camera badge main root source
-// currently appears to be an issue with optimization level >0 throwing an exception. 
+// currently appears to be an issue with optimization level >0 throwing an exception.
 // appears fixed with compiler flag -fno-aggressive-loop-optimizations
-
+#include <stdint.h>
 #include "cambadge.h"
 #include "globals.h"
 
@@ -9,7 +9,7 @@
 #warning debug_dma enabled - SD card not useable
 #endif
 
-#pragma config USERID=0x4248 //"HB" - used by bootloader to validate correct image for the hardware. 
+#pragma config USERID=0x4248 //"HB" - used by bootloader to validate correct image for the hardware.
 //NB bytes reversed in #pragma config vs. bootloader values
 
 //config data -  only used when programming standalone - bootloader config is used for normal operation
@@ -29,7 +29,7 @@
 
 
 //================================================================================================
-// UI states 
+// UI states
 
 #define s_startup 0
 #define s_waitsplash 1
@@ -57,13 +57,16 @@
 typedef char* (*application)(unsigned int);
 application const apps[] = {applist}; // list of function pointers to applications
 
+uint32_t systick_ms = 0;
+
+
 void main(void) {
     unsigned int i, state, dispowerdown = 0;
     unsigned int powerbuttimer = 0, mounttimer = 0; // power button-down timer, auto poweroff timer, card detect debounce timer
     unsigned int y, scroll, appnum = 0; // menu display
 
-    
-    
+
+
     inithardware();
     setupints();
     readbuttons();
@@ -73,12 +76,12 @@ void main(void) {
 
     state = s_startup;
     cardmounted = 0;
-    IFS0SET = _IFS0_T4IF_MASK; // force initial timer tick for button read, battery level initialise 
+    IFS0SET = _IFS0_T4IF_MASK; // force initial timer tick for button read, battery level initialise
     TMR4 = 0;
 
     printf(cls blu "Starting" whi); // in case something crashes early
 
-    // check for i2c jam issue from camera - shouldn't happen nowadays but useful as a quick diagnostic 
+    // check for i2c jam issue from camera - shouldn't happen nowadays but useful as a quick diagnostic
     I2C2CONbits.ON = 0;
     Nop();
     Nop();
@@ -95,13 +98,14 @@ void main(void) {
         cardinsert = 0;
 
         if (IFS0bits.T4IF) { //  timer tick. nominally 20mS but can be longer of tasks take more time
+            systick_ms += 20;
             tick = 1 + TMR4 / (ticktime * (clockfreq / 1000000) / t4prescale); // estimate number of missed ticks
             TMR4 = -(ticktime * (clockfreq / 1000000) / t4prescale); // reset timer
             LATCINV = 1 << 5;
             IFS0CLR = _IFS0_T4IF_MASK;
             readbatt(); // read battery voltage
             readbuttons();
-        
+
             i = accx; // previous accx for change detect
             acc_read();
             if (abs((signed int) i - accx) > accmovethresh) powerdowntimer = 0; // check for movement
@@ -111,7 +115,7 @@ void main(void) {
             if (butstate & powerbut) powerbuttimer += tick; // power button hold timer
             else powerbuttimer = 0;
             if (powerbuttimer > powerbuttime) if (state != s_powerdownwait) state = s_powerdown;
-#if debug_dma==0   
+#if debug_dma==0
             sd_cs_in; // use delay through readbuttons for SD Card-detect pulldown setting time
             delayus(5); // wait settling time
             if (!sd_carddet) {
@@ -130,7 +134,7 @@ void main(void) {
                     cardinsert = 1;
                 } else mounttimer = 0; // avoid hang waiting for bad card to mount
             }
-#endif   
+#endif
 
         }// tick
 
@@ -208,7 +212,7 @@ void main(void) {
                 printf(top red inv "DEBUG_DMA ON" inv whi);
 #endif
 
-#define maxy 7   // number of apps in menu  
+#define maxy 7   // number of apps in menu
             case s_showmenu:
                 if (napps > maxy && scroll + maxy < napps) printf(tabx18 taby8 whi "...");
                 else printf(tabx18 taby8 whi "   ");
@@ -243,7 +247,7 @@ void main(void) {
                 if (!butpress) break;
 
                 state = s_showmenu; //default next state
-                if (butpress & but1) { // up 
+                if (butpress & but1) { // up
                     if (appnum) appnum--;
                     if (appnum < scroll) scroll--;
                 }
@@ -272,8 +276,8 @@ void main(void) {
                 // will not normally be seen, but will if power override link is fitted
                 printf(cls taby4 grey "Awaiting Powerdown\n\n Button 5:reset");
                 cam_enable(cammode_off);
-                
-                
+
+
                 led1_off;
                 for (i = 0; i != napps; apps[i++](act_powerdown)); // let apps do hardware de-init
                 state = s_powerdownwait;
@@ -282,7 +286,7 @@ void main(void) {
             case s_powerdownwait:
                 /// issue found on some badges is that when PIC goes into reset, pin leakage from RA4 turns supply backon
                 // ideal fix would be to reduce R8, but need to do it in software...
-                // method is to PWM power control to reduce supply & discharge capacitance for a while before finally turning off, so 
+                // method is to PWM power control to reduce supply & discharge capacitance for a while before finally turning off, so
                 // insufficient energy left to power-up again
                 delayus(200000);// wait till effect of button via D28 is gone
                  __builtin_disable_interrupts();
@@ -295,12 +299,12 @@ void main(void) {
                   kickwatchdog;
                 }
                 powercon_off;
-           
+
                 do { // only gets here if power-bypass link set
                     kickwatchdog;
-          
+
                    if(PORTAbits.RA9)__pic32_software_reset();
-                } 
+                }
                     while (1);
 
                 break;
@@ -313,7 +317,3 @@ void main(void) {
     } while (1);
 
 }
-
-
-
-

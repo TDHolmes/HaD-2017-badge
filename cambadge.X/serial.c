@@ -15,6 +15,8 @@ void polluart(void) { // check for serial commands. Slightly crude but simple
     unsigned int i, pchange, x, y, outptr;
     unsigned char c;
 
+    return;  // don't use these silly commands
+
     if (tick) {
         if (rxptr) if (++rxtimer > 2) rxptr = 0; // serial receive timeout
 
@@ -34,11 +36,11 @@ void polluart(void) { // check for serial commands. Slightly crude but simple
     switch (rxbuf[0]) {
 
 
-        case 0x10:// 0x10 <adr> <value>  set camera register. returns 0x55 
+        case 0x10:// 0x10 <adr> <value>  set camera register. returns 0x55
 
             if (rxptr != 3) break;
-rxptr = 0;
-            cam_setreg(rxbuf[1], rxbuf[2]);   
+            rxptr = 0;
+            cam_setreg(rxbuf[1], rxbuf[2]);
             u2txbyte(0x55);
             break;
 
@@ -54,11 +56,11 @@ rxptr = 0;
             cam_enable(rxbuf[1]);
             cam_grabenable(rxbuf[2],0,0);
             u2txbyte(0x55);
-            break;   
-            
+            break;
+
 
         case 0x14: // 14 xstart/2 ystart/2 xdiv ydiv refclkdiv  set capture parameters 0 = unchanged
-            
+
             if (rxptr != 6) break;
             rxptr = 0;
             if (rxbuf[1]) xstart = (unsigned int) rxbuf[1]*2;
@@ -67,9 +69,9 @@ rxptr = 0;
             if (rxbuf[4])ydiv = (unsigned int) rxbuf[4];
             if (rxbuf[5]) REFOCON = 0b1001001000000000 | ((unsigned int) rxbuf[5]) << 16; // XCLK clock to cam
             u2txbyte(0x55);
-            
+
             break;
-            
+
         case 0x15 : // 15  poll camera state
             if(rxptr!=1) break;
             rxptr=0;
@@ -80,7 +82,7 @@ rxptr = 0;
 
         case 0x16 : // 16 xx return image. xx=1 to wait for new frame
               // could be optimised by starting to send while capture in progress
-             if(rxptr!=2) break;           
+             if(rxptr!=2) break;
              rxptr=0;
              if(rxbuf[1]) while(!cam_newframe);
              for(x=1,i=0;i!=xpixels*ypixels*(camflags & camopt_mono)?1:2;i++) {
@@ -89,7 +91,7 @@ rxptr = 0;
              }
              cam_newframe=0;
              break;
-             
+
 
         case 0x20: // return  info
             if(rxptr!=1) break;
@@ -108,19 +110,18 @@ rxptr = 0;
         case 0x30: // 30 return accel data, bat level, bat state
             if(rxptr!=1) break;
             rxptr=0;
-            u2txword(accx); 
+            u2txword(accx);
             u2txword(accy);
             u2txword(accz);
-            u2txbyte(butstate); 
+            u2txbyte(butstate);
             u2txbyte(butpress);
             u2txword(battlevel);
-            break;            
+            break;
 
-            
-            
-            
+
+
+
     }//switch
     if (rxptr == 0) powerdowntimer = 0; // reset timer on good command
 }
 #endif
-

@@ -6,16 +6,16 @@
 // see globals.h for documentation of useful stuff
 
 void _general_exception_handler(unsigned cause, unsigned status) {
-    // catch this to avoid confusion over cause of fatal crashes like div by zero or memory over-pissage 
+    // catch this to avoid confusion over cause of fatal crashes like div by zero or memory over-pissage
     // default handler just resets
-    // don't use printf in case it's a stack issue 
+    // don't use printf in case it's a stack issue
     dispuart=0;
     dispchar(0xe7); // white on blue
     dispchar('B');
     dispchar('S');
     dispchar('O');
     dispchar('D');
-    while (1); // watchdog timeout    
+    while (1); // watchdog timeout
 }
 
 
@@ -126,7 +126,7 @@ void acc_init(void) {
 
     //iistop(); // reset any I2C devices that may be part-way through an aborted transaction
     iistart(iicadr_acc);
-    #if acceltype==accel_dh 
+    #if acceltype==accel_dh
 
     iisend(0x9f); // reg 1f+auto-increment
     iisend(0xC0); // temp control
@@ -137,15 +137,15 @@ void acc_init(void) {
     iisend(0x00); // ctrl_reg5
 
 #endif
-#if acceltype==accel_hh 
-   
-    
+#if acceltype==accel_hh
+
+
     iisend(0x20); // ctrl reg 1
     iisend(0xdF); // ctrl reg 1 hires, 50Hz BDU XYZ en
 
-    
-#endif    
-    
+
+#endif
+
     iistop();
 }
 
@@ -158,8 +158,8 @@ void acc_read(void) { // read all accelerometer values
     iisend(0xa7); // b7 set for auto-increment
 #else
     iisend(0x27);
-#endif    
-    
+#endif
+
     iirestart(iicadr_acc + 1);
     status = getiic(1); // ignore for the moment
     accx = getiic(1);
@@ -180,11 +180,11 @@ void acc_read(void) { // read all accelerometer values
 //=========================================================================== cam control
 
 void cam_grabdisable(void) {
-   
+
     cam_newframe = 0;
     cam_started = 0;
     IEC0CLR = _IEC0_INT4IE_MASK; // disable vsync int
-    while (cam_busy); // wait for any in-progress grab to finish  
+    while (cam_busy); // wait for any in-progress grab to finish
 
 }
 
@@ -196,7 +196,7 @@ void cam_grabenable(unsigned int opt, unsigned int bufoffset, unsigned int cambu
     camoffset = bufoffset;
     cammax = cambuflen;
     i=xpixels*((camflags&camopt_mono)?1:2);
-    if ((cammax == 0) || (cammax > cambufsize - i)) cammax = cambufsize - i; // add margin so we don't need to worry about line length 
+    if ((cammax == 0) || (cammax > cambufsize - i)) cammax = cambufsize - i; // add margin so we don't need to worry about line length
 
     IFS0CLR = _IFS0_INT4IF_MASK;
     IEC0SET = _IEC0_INT4IE_MASK; //enable vsync int
@@ -211,7 +211,7 @@ void cam_enable(unsigned int mode) {//initialise & enable camera, Data will be a
     cam_grabdisable(); // stop any current grabbing
     REFOCON = 0b1001001000000000 | refclkdiv << 16; // fast while setting up regs - underclocking messes up I2C, causing bus jam
     T3CON = 0b1000000000000010; //external clock. PR values get set up in vertical sync int
-    
+
     cammode = mode; // global current-mode value
     if (cammode == 0) {//disable
         cam_setreg(0x09, 0x10); // soft standby
@@ -222,7 +222,7 @@ void cam_enable(unsigned int mode) {//initialise & enable camera, Data will be a
         return;
     }
 
-    // enable 
+    // enable
 
     if (cammode >= ncammodes) cammode = 1;
     i = camconfig[lastmode].flags;
@@ -246,7 +246,7 @@ void cam_enable(unsigned int mode) {//initialise & enable camera, Data will be a
         oledcmd(0x1b5);
         oledcmd(0x0C);
         delayus(10000);
-        for (i = 0; i != sizeof (camvals_9650) / 2; i++) // /2 as array is 16 bit shorts 
+        for (i = 0; i != sizeof (camvals_9650) / 2; i++) // /2 as array is 16 bit shorts
         {
             j = camvals_9650[i];
             cam_setreg(j >> 8, j);
@@ -258,7 +258,7 @@ void cam_enable(unsigned int mode) {//initialise & enable camera, Data will be a
     cam_setreg(0x12, i); // VGA mode
     cam_setreg(0x3a, (camflags & camopt_swap) ? 0x08 : 0x00); // swap bytes
     cam_setreg(0x15, (camflags & camopt_clkphase) ? 0x22 : 0x32); // swap pixclk phase
-    if (camflags & camopt_mono) { // mono mode 
+    if (camflags & camopt_mono) { // mono mode
         for (i = 0; i != sizeof (camvals_9650_mono) / 2; i++) {
             j = camvals_9650_mono[i];
             cam_setreg(j >> 8, j);
@@ -273,21 +273,19 @@ void cam_enable(unsigned int mode) {//initialise & enable camera, Data will be a
 
 
 
-//============================================================================ UART 
+//============================================================================ UART
 
 
 void u1txbyte(unsigned int c) {//Send byte to UART 1. Does not wait for completion
-    if(U1MODEbits.ON==0) {
-  
-    //UART1  - on expansion header
-            // fedcba9876543210
-    U1MODE = 0b1000000000001000; // BRGH=1
-    U1STA =  0b0001010000000000; // txen,rxen
-    U1BRG = clockfreq / u1baud / 4 - 1;
-    iosetup_uart1;
+    if(U1MODEbits.ON == 0) {
+        //UART1  - on expansion header
+        // fedcba9876543210
+        U1MODE = 0b1000000000001000; // BRGH=1
+        U1STA =  0b0001010000000000; // txen,rxen
+        U1BRG = clockfreq / u1baud / 4 - 1;
+        iosetup_uart1;
     }
-    
-    
+
     while (U1STAbits.UTXBF);
     U1TXREG = c;
 }
@@ -316,23 +314,23 @@ int randnum(int min, int max) { // return signed random number between ranges
 //========================================================================= inithardware
 void claimadc(unsigned char claim)
 {
- 
-    if(claim) adcclaimed=1; 
-    else {
-    IEC0CLR = _IEC0_AD1IE_MASK;
-    
-            // ADC  - battery measure
-    // fedcba9876543210
-    AD1CON1=0;
-    AD1CON1 = 0b1000000011100000; //auto convert after sampling time, FRC clock
-    AD1CON2 = 0;
-    //           sssss
-    AD1CON3 = 0b1000100000000000; // sample time.
-    AD1CSSL=0;
-    adcclaimed=0;
-    
+    if(claim) {
+        adcclaimed = 1;
     }
-    
+    else {
+        IEC0CLR = _IEC0_AD1IE_MASK;
+
+        // ADC  - battery measure
+        // fedcba9876543210
+        AD1CON1 = 0;
+        AD1CON1 = 0b1000000011100000; //auto convert after sampling time, FRC clock
+        AD1CON2 = 0;
+        //           sssss
+        AD1CON3 = 0b1000100000000000; // sample time.
+        AD1CSSL = 0;
+        adcclaimed = 0;
+
+    }
 }
 
 
@@ -350,7 +348,7 @@ void inithardware(void) {// note hardware may not be in reset state as some stuf
     LATA = LATB = LATC = 0;
     powercon_on;
     CNPUA = CNPUB = CNPUC = CNPDA = CNPDB = CNPDC = 0;
-    CNPUCbits.CNPUC3=1; 
+    CNPUCbits.CNPUC3=1;
     LATCbits.LATC3=1; // u1 tx idle state for when UART enabled by u1tx
 
     // switch to final clock frequency. 48MHz is technically overclocking if part is 40Mhz so bootloader sets 40MHz in config
@@ -386,7 +384,7 @@ void inithardware(void) {// note hardware may not be in reset state as some stuf
 
     led1_off;
     claimadc(0);
-    
+
 
 
     // Timer 1 - used for do_delay/delayus() for general purpose delays
@@ -395,7 +393,7 @@ void inithardware(void) {// note hardware may not be in reset state as some stuf
     // T3 pixel clock divider to trigger DMA transfer of camera data
     T3CON = 0b1000000000000010; //external clock. PR values get set up in vertical sync int
     iosetup_cam;
-    
+
     //T2 frame interval timer used by browser and camera
     T2CON = 0b1000000001110000; // prescale 256
     // T4 system tick timer
@@ -411,9 +409,9 @@ void inithardware(void) {// note hardware may not be in reset state as some stuf
     // fedcba9876543210
     PMCON = 0b1000000000000000; // B8 enable read strobe
     PMMODE = 0b0000001000000000;
-    PMAEN = 1<<3; // note due to silicon errata, IO output on pins shared with PMADDR doesn't work, 
+    PMAEN = 1<<3; // note due to silicon errata, IO output on pins shared with PMADDR doesn't work,
     PMADDR=1<<3; // default state of U1 TXD
-    // so need to use PMADDR to access and enable the corresponding bit in PMAEN 
+    // so need to use PMADDR to access and enable the corresponding bit in PMAEN
     REFOCON = 0b1001001000000000 | refclkdiv << 16; // XCLK clock to cam  to avoid I2C jam
 
 #if debug_dma==1 // enable RD to scope DMA read requests on pin
@@ -423,7 +421,7 @@ void inithardware(void) {// note hardware may not be in reset state as some stuf
 
  // uart1 only initialised on first use of u1txbyte so can be used as IO
 
-    //uart 2 tx/rx debug (via ISP header ) 
+    //uart 2 tx/rx debug (via ISP header )
     // fedcba9876543210
     U2MODE = 0b1000000000001000; // BRGH
     U2STA = 0b0001010000000000; // TXEN,RXEN. Int on first byte to avoid FIFO timeout issue -timers are heavily used so don't want to waste one for UART fifo timeout
@@ -507,29 +505,29 @@ void readbatt(void) {
 
 void readbuttons(void) {
     unsigned int i;
-   
-    
-    // discovered that some SD cards have weak pullup on Din, need to fudge around this by reading but4 at right time - 
-    // slow enough for 2k2 switch pullup, but not so slow we catch the slower rise of the sd pullup  
+
+
+    // discovered that some SD cards have weak pullup on Din, need to fudge around this by reading but4 at right time -
+    // slow enough for 2k2 switch pullup, but not so slow we catch the slower rise of the sd pullup
     __builtin_disable_interrupts();
    butts_in; // shared IOs to inputs
-   butpress = butstate; 
+   butpress = butstate;
    butstate = 0;
    Nop();Nop();Nop();Nop();Nop();Nop();Nop();
    if (butin_4) butstate |= but4;
    __builtin_enable_interrupts();
     if (butin_3) butstate |= but3;
     delayus(10);// settle time for other pulldowns
-         
+
     if (butin_1) butstate |= but1;
     if (butin_2) butstate |= but2;
-    
-    
+
+
     if (butin_5) butstate |= but5;
     if (powerbut_in) butstate |= powerbut;
     butpress = (butpress ^ butstate) & butstate; // changed and now down
     butts_out;
-   
+
     if (butstate & butmask) reptimer++;
     else reptimer = 0; // exclude power but from autorepeat
     if (reptimer == reptime) {
@@ -600,7 +598,7 @@ void selftest(void) {
             goto testfail;
         }
 
-        //cam_setreg(0x8d,0x12); // colour bar 
+        //cam_setreg(0x8d,0x12); // colour bar
         c = PORTC;
         b = PORTB;
         d = 0;
@@ -675,7 +673,7 @@ void selftest(void) {
         printf(yel "Press each button\n" whi);
         b = 0;
         do {
-           reptimer=0; 
+           reptimer=0;
             readbuttons();
             b |= butpress;
             printf(tabx0 taby5);
@@ -717,7 +715,7 @@ void nvm_read(void)
    unsigned int i, *cptr;
        cptr=(unsigned int *) (nvm_addr | 0xA0000000); // physical to logical address
        for(i=0;i!=nvm_size/4;i++) nvmbuf.words[i]=*cptr++;
-    
+
 }
 
 
@@ -730,8 +728,8 @@ void __attribute__((nomips16)) do_flash(unsigned long op)
     NVMKEY 		= 0x556699AA;
     NVMCONSET 	= NVMCON_WR;
     while(NVMCON & NVMCON_WR);
-    NVMCONCLR = NVMCON_WREN;  
-  
+    NVMCONCLR = NVMCON_WREN;
+
 }
 void nvm_write(void)
 {
@@ -739,26 +737,26 @@ void nvm_write(void)
    __builtin_disable_interrupts();
   NVMADDR=nvm_addr;
   do_flash(4); // erase page
-  
-  for(p=0;p!=pagesize;p+=rowsize) 
-  
+
+  for(p=0;p!=pagesize;p+=rowsize)
+
   {
    NVMADDR=nvm_addr+p;
    NVMSRCADDR = KVA_TO_PA(&nvmbuf.bytes[p]);
 
   do_flash(3); // row program
   }
-  
-  
-  __builtin_enable_interrupts(); 
-    
-    
+
+
+  __builtin_enable_interrupts();
+
+
 }
 
     void reboot(void)
     {
     // perform a reset
-      __builtin_disable_interrupts();  
+      __builtin_disable_interrupts();
     SYSKEY = 0x00000000; //write invalid key to force lock
      SYSKEY = 0xAA996655; //write key1 to SYSKEY
      SYSKEY = 0x556699AA; //write key2 to SYSKEY

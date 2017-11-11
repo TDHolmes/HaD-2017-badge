@@ -1,5 +1,6 @@
 // global variables, macros and function prototypes
 // also documentation on global variables and useful functions
+#include <stdint.h>
 
 //_____________________________________________________________________ camera status
 
@@ -12,12 +13,12 @@ extern volatile unsigned char cam_stop; // set to stop after current frame
 extern volatile unsigned int xstart, ystart; // capture start position in frame.Sampled at vsync
 extern unsigned int xdiv, ydiv; // pixel clock/line divider. Sampled at vsync
 extern unsigned int xpixels, ypixels; // number of pixels to capture. Sampled at vsync
-extern unsigned int camaddr; // current capture address (offset within cambuffer), updated at end of each line  
-extern volatile unsigned int linecnt; // current capture line used by FG task to track capture progress & send lines as soon as stored 
-extern unsigned int cammode; // current mode - used to detect changes 
-extern unsigned int camflags; // current camera flags. Loaded from camconfig[cammode] 
+extern unsigned int camaddr; // current capture address (offset within cambuffer), updated at end of each line
+extern volatile unsigned int linecnt; // current capture line used by FG task to track capture progress & send lines as soon as stored
+extern unsigned int cammode; // current mode - used to detect changes
+extern unsigned int camflags; // current camera flags. Loaded from camconfig[cammode]
 extern unsigned int camoffset; // capture start address offset from start of cambuffer. Sampled at vsync
-extern unsigned int cammax; // limit of camera memory - will wrap round 
+extern unsigned int cammax; // limit of camera memory - will wrap round
 
 // _____________________________________________________________________________serial
 
@@ -25,9 +26,9 @@ extern unsigned int cammax; // limit of camera memory - will wrap round
 extern volatile unsigned int rxptr, rxtimer;
 extern unsigned char rxbuf[rxbufsize];
 #endif
-//___________________________________________________________________________________________ general memory  
-// 
-// union to allow buffer access by bytes or words 
+//___________________________________________________________________________________________ general memory
+//
+// union to allow buffer access by bytes or words
 
 typedef union {
     unsigned char bytes[cambufsize];
@@ -41,31 +42,31 @@ extern buffertype buffer_union;
 #define cambuffer_w buffer_union.words
 
 // alias buffer union to simplify syntax
-// access as bytes : cambuffer[0..cambufsize-1] 
+// access as bytes : cambuffer[0..cambufsize-1]
 // access as shorts : cambuffer_s[0..cambufsize/2-1]
 // access as words : cambuffer_w[0..cambufsize/4-1]
 
 /*
  if your application needs a static array of something other than bytes, shorts or words, to avoid wasting memory,
- overlay it with cambuffer as follows. For example if you want an array of these structs 
+ overlay it with cambuffer as follows. For example if you want an array of these structs
 
     typedef struct {
     unsigned int a;
     unsigned int b;
     unsigned int c;
 } triple;
- 
-which you'd normally declare like this : 
+
+which you'd normally declare like this :
 
 static triple trips[100];
 
- instead, declare it like this, so it gets overlayed with the cambuffer memory : 
- 
+ instead, declare it like this, so it gets overlayed with the cambuffer memory :
+
 triple *trips = (triple*) &cambuffer[0];
 
  Obviously you can use offsets into cambuffer if you want to use some of cambuffer, or need multiple arrays
  Take care not to use more than cambufsize bytes total
-  
+
  */
 
 
@@ -88,13 +89,13 @@ extern headerbuftype headerbuf;
 extern FSFILE * fptr; // file system struct for access to current open file
 extern SearchRec searchfile, searchdir; // struct for listing files with FSfindfirst
 
-//________________________________________________________________________________ misc global state info 
+//________________________________________________________________________________ misc global state info
 
 extern unsigned char butstate; // buttons currently down button bits defined in cambadge.h
 extern signed int accx, accy, accz; // accelerometer values. range +/-16000
 extern unsigned int battlevel; // battery level in mV
-extern unsigned char cardmounted; // =1 if card is inserted and filesystem available 
-extern unsigned int powerdowntimer; // only global as we want to reset it on serial commands as well as buttons/accel move. 
+extern unsigned char cardmounted; // =1 if card is inserted and filesystem available
+extern unsigned int powerdowntimer; // only global as we want to reset it on serial commands as well as buttons/accel move.
 // Zero this if you want to prevent powerdown
 unsigned int reptimer; // auto-repeat timer - set this to zero to disable auto-repeat
 
@@ -103,7 +104,7 @@ extern unsigned char butpress; // buttons pressed - bits as per butstate
 extern unsigned char cardinsert; // cardmountd indicates file ops can be done. cardinsert is insert/remove event flag set once in polling loop
 extern unsigned int tick; // system ticks normally set to 1 every 20ms, but if apps take longer, count will reflect approx elapsed ticks since last call
 
-//display 
+//display
 
 extern unsigned char dispx, dispy; // current cursor x,y position ( pixels) 0..127
 extern unsigned short fgcol, bgcol; // foreground and background colours , RGB565
@@ -118,6 +119,9 @@ unsigned char adcclaimed; //=1 if someone is using the ADC so disable battery re
 extern unsigned int avi_width, avi_height, avi_bpp; // width,height in pixels, bytes per pixel (1,2 supported for record, 1,2,3 for playback)
 extern unsigned int avi_frametime, avi_framelen, avi_frames; //uS per frame, bytes per frame, number of frames
 extern unsigned int avi_framenum, avi_start; // current frame number, file offset of image data of first frame (after 00dc chunk header)
+
+// Added by Tyler
+extern uint32_t systick_ms;
 
 //___________________________________________________________________________ function prototypes
 
@@ -177,17 +181,17 @@ unsigned int loadbmp(char*, unsigned int);
 // read BMP file 0 : just get info, 1 : load into cambuffer 2 : load and display
 
 unsigned int writebmpheader(unsigned int xsize, unsigned int ysize, unsigned int bpp);
-// write a BMP header (and pallette table for mono) to open file 
+// write a BMP header (and pallette table for mono) to open file
 
 void flipcambuf(unsigned int xpixels, unsigned int ypixels, unsigned int offset);
 // vertical flip image in camera buffer for mono AVI. Also changes greyscale range to 16-240
 
 unsigned int startavi(void); // Start AVI write - just writes dummy header, only needs avi_bpp
-unsigned int finishavi(void); // write index and header 
+unsigned int finishavi(void); // write index and header
 
 
 void cam_enable(unsigned int mode);
-// initialises or disables camera with parameters for specified mode. Does not start grabbing until grabenable used 
+// initialises or disables camera with parameters for specified mode. Does not start grabbing until grabenable used
 
 void cam_grabdisable(void);
 // suspends grab process, camera stays initialised
@@ -195,14 +199,14 @@ void cam_grabdisable(void);
 void cam_grabenable(unsigned int opt, unsigned int bufoffset, unsigned int cambuflen);
 // starts acquisition. pptions in cambadge.h
 // first byte is garbage, so cam data will be at cambuffer[bufoffset+1]. See cambadge.h for modes
-//cambuflen sets value at which acquisition address will wrap to bufoffset, =0 for maximum. Can be used for FIFO acquisition of large frames 
+//cambuflen sets value at which acquisition address will wrap to bufoffset, =0 for maximum. Can be used for FIFO acquisition of large frames
 
 void conv16_24(unsigned int npixels, unsigned int offset);
 // convert image at cambuffer[offset] from RGB565 to RGB888
 
 void claimadc(unsigned char claim); // call with 1 to claim use of ADC, disables battery read. Call with 0 to release
 
-//________________________________________________________________________________________ macros 
+//________________________________________________________________________________________ macros
 
 #define delayus(d) do_delay((unsigned long)d*(clockfreq/1000000)) // done as macro  so scaling done at compile time
 #define filetype(a,b,c) ((a<<16) | (b<<8) | c) // convert e.g. 'A','V','I' to word for filetype comparison. saves defining constants for all filetypes
@@ -214,8 +218,8 @@ void claimadc(unsigned char claim); // call with 1 to claim use of ADC, disables
 const char* avierrors[] = {"None", "Not found", "Read Err", "Not an AVI", "LIST Error", "Hdr Err", "Strm Err", "MOVI Err", "00dc Err", "Frame too big", "Unknown format", "Frame too wide", "Frame too tall",
     "Not a BMP"};
 
-// lookup for primary colors, and dim primaries        
-#define dim 156 
+// lookup for primary colors, and dim primaries
+#define dim 156
 const unsigned short primarycol[16] = {
     rgbto16(0, 0, 0), rgbto16(255, 0, 0), rgbto16(0, 255, 0), rgbto16(255, 255, 0), rgbto16(0, 0, 255), rgbto16(255, 0, 255), rgbto16(0, 255, 255), rgbto16(255, 255, 255),
      rgbto16(0, 0, 0), rgbto16(dim, 0, 0), rgbto16(0, dim, 0), rgbto16(dim, dim, 0), rgbto16(0, 0, dim), rgbto16(dim, 0, dim), rgbto16(0, dim, dim), rgbto16(dim,dim,dim)

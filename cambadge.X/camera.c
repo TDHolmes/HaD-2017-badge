@@ -24,7 +24,7 @@
 
 char camname[12];
 
-void docamname(unsigned int n, unsigned int ct) { // create a formatted filename CAMxxx.BMP or AVI, or dirname CAM000 
+void docamname(unsigned int n, unsigned int ct) { // create a formatted filename CAMxxx.BMP or AVI, or dirname CAM000
 
     unsigned int i = 0;
     if (ct == ct_dir) {
@@ -79,7 +79,7 @@ char* camera(unsigned int action) {
         case s_camrestart:
             if(butstate) break; // in case trig held
             printf(cls butcol "EXIT  " whi inv " Camera " inv butcol "  Light" bot "Mode   ");
-            
+
             if (explock) printf(inv "ExLock" inv);
             else printf("ExLock");
 
@@ -117,15 +117,21 @@ char* camera(unsigned int action) {
                 vidmode ^= 1;
                 camstate = s_camrestart;
             }
-            if (butpress & but4) if (led1) led1_on;
-                else led1_off;
+            if (butpress & but4) {
+                if (led1) {
+                    led1_on;
+                }
+                else {
+                    led1_off;
+                }
+            }
             if (butpress & but5) {
                 camstate = vidmode ? s_camavistart : s_camgrab;
                 break;
             }
             if (!cam_newframe) break;
             if (camflags & camopt_mono) monopalette(0, 255);
-            cam_newframe = 0; // clear now in case display takes longer than cam frame time 
+            cam_newframe = 0; // clear now in case display takes longer than cam frame time
             dispimage(0, 12, xpixels, ypixels, (camflags & camopt_mono) ? (img_mono | img_revscan) : (img_rgb565 | img_revscan), cambuffer + 8);
             break;
 
@@ -190,7 +196,7 @@ char* camera(unsigned int action) {
 
         case s_waitavi:
 
-            if (avi_frames) if (butpress) {//ensure at least one frame to avoid creating dodgy file    
+            if (avi_frames) if (butpress) {//ensure at least one frame to avoid creating dodgy file
                 cam_grabdisable();
                     printf(bot tabx12 "Ending");
                     avi_frametime = rectime / avi_frames; // get correct framerate on playback
@@ -204,7 +210,7 @@ char* camera(unsigned int action) {
                 }
 
             if (cam_newframe == 0) break; //got a new frame ?
-        
+
             cam_grabenable(camen_grab,7+(campage?0:(avi_framelen+8)),0); // start grab to other page
             if (camflags & camopt_mono) monopalette(0, 255);
 
@@ -218,28 +224,28 @@ char* camera(unsigned int action) {
             cambuffer[i++] = avi_framelen >> 8;
             cambuffer[i++] = 0;
             cambuffer[i++] = 0;
-            
+
             dispimage(0, 12, xpixels, ypixels, (camflags & camopt_mono) ? (img_mono | img_revscan) : (img_rgb565 | img_revscan), cambuffer + i);
 
             if (avi_bpp == 1) flipcambuf(xpixels, ypixels, i); // mono AVIs have reverse scan direction
- 
-           
+
+
             if (FSfwrite(&cambuffer[i-8], avi_framelen + 8, 1, fptr) == 0) {
                 printf(bot "Error:WriteFrame" del del);
                 FSfclose(fptr);
                 cam_grabdisable();
                 break;
             }
-            
+
             campage=campage?0:1; // page swap
             i = TMR5;
             if (IFS0bits.T5IF) i += 0x10000; // rolled - assume only once
             rectime += (i * 256 / (clockfreq / 1000000)); // uS
-         
+
             printf(tabx0 taby11 yel "Frame %04d %4d secs", ++avi_frames, rectime / 1000000);
             TMR5 = 0;
-            IFS0bits.T5IF = 0; 
-      
+            IFS0bits.T5IF = 0;
+
             camstate = s_waitavi;
 
             break;

@@ -3,16 +3,16 @@
 #include "pindefs.h" // IO pin defs and access macros
 #include "appmap.h" // main menu configuration
 #include "MDD_File_System/FSIO.h"
-#include <sys/attribs.h> // Interrupt vector constants 
+#include <sys/attribs.h> // Interrupt vector constants
 
-//=========================================================== 
+//===========================================================
 // debug and high-level tweak options
 #define version "BADGE 1.03"
 #define versionbyte 103 // returned by serial command
 
 
 #define uart1_enable 1 // ==1 to set up UART1 and set pins for UART mode
-#define u1baud  19200  
+#define u1baud  19200
 #define serialcontrol 1 // =1 to enable serial control via ttl232 header
 #define u2baud  100000 // TTL232 header for debug etc.
 
@@ -32,25 +32,25 @@
 //============================F==============================================
 
 // RAM buffers
-#define cambufsize (dispwidth*dispheight*3+256) // size of image buffer, to fit rgb888 plus a little overlap 
+#define cambufsize (dispwidth*dispheight*3+256) // size of image buffer, to fit rgb888 plus a little overlap
 #define hbuflen 1024 // size of buffer used for pallette and avi/bmp header noodling, also buffer for NVM data
 #define rxbufsize 256 // serial control rx buffer size
 
 #define nvm_addr 0x1D007C00 // flash address of NV memory
 #define nvm_size 0x400 // bytes
-//_____________________________________________________________________ 
+//_____________________________________________________________________
 #define dispwidth 128
 #define dispheight 128
 
 #define oled_upscan 1 // =1 for oled scan bottom to top to match BMP,AVI format. used by oled init and font/block plotting code
                       // only left here as it's changed a few times previously,
                       // but probably won't again
-//flags for dispuart 
+//flags for dispuart
 #define dispuart_off 0
 #define dispuart_u1 1 // send printf to uart1
 #define dispuart_u2 2 // send printf to uart 2
 #define dispuart_screen 0x10 // bot to send printf to uart and screen
-//_____________________________________________  camera option bits. 
+//_____________________________________________  camera option bits.
 // loaded into camflags from cammode by cam_enable
 
 #define camopt_vga 1              //=1 for vga, =0 for qvge
@@ -90,13 +90,13 @@ typedef struct {
 #define ncammodes 6
 #define fastcolzoom 1 // faster x2 colur zoom, timing might be a bit sketchy
 
-const camconftype camconfig[ncammodes]={ 
+const camconftype camconfig[ncammodes]={
 {128,96,4,2,0,0,0},
 {128,96,4,2,30,24,camopt_refclk_2 | camopt_double },
 #if fastcolzoom==1
 {128,96,4,2,188,144,camopt_refclk_3 | camopt_vga | camopt_clkphase | camopt_double },
 #else
-{128,96,4,2,176,144,camopt_refclk_4 | camopt_vga | camopt_swap}, 
+{128,96,4,2,176,144,camopt_refclk_4 | camopt_vga | camopt_swap},
 #endif
 {128,96,4,2,30,24, camopt_refclk_2 | camopt_mono | camopt_swap },
 {128,96,2,1,96,73,camopt_refclk_2 | camopt_mono | camopt_swap },
@@ -109,13 +109,13 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 //_________________________________________________________________hardwareish stuff
 
 
-#define clockfreq 48000000UL // 
+#define clockfreq 48000000UL //
 #define refclkdiv 2 // default camera clock divider 1=24MHz, 2=12MHz 3 = 8MHz 4 = 6MHz
 
 #define t4prescalebits 7
 #define t4prescale (2<<t4prescalebits) //256 tick timer prescale
 
-//____________________________________________________________________ I2C 
+//____________________________________________________________________ I2C
 
 #define accel_dh 0
 #define accel_hh 1
@@ -137,7 +137,7 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 
 
 #define i2cspeed_norm 300000 // i've seeen odd issues on other projects with >350k so be save
-#define i2cspeed_cam 100000 // slow I2c for cam as underclocking messes up I2C 
+#define i2cspeed_cam 100000 // slow I2c for cam as underclocking messes up I2C
 
 // application action codes
 
@@ -162,29 +162,29 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 
 //image formats for dispimage. NB assumes format number b0,1 = bytes per pixel so need tweaks if more formats added
 
-#define img_mono 1 
+#define img_mono 1
 #define img_rgb565 2
 #define img_rgb888 3
 #define img_revscan 0x04 // reverse vertical scan direction
 #define img_vdouble 0x08 // double vertical pixels
-#define img_skip1 0x10 // skip alternate pixels for downsampling 
+#define img_skip1 0x10 // skip alternate pixels for downsampling
 #define img_skip2 0x20
-#define img_skip3 0x30 
-#define img_skip4 0x40 
-#define img_skip5 0x50 
-#define img_skip6 0x60 
-#define img_skip7 0x70 
-#define img_skip8 0x80 
-#define img_skip9 0x90 
-#define img_skip10 0xa0 
+#define img_skip3 0x30
+#define img_skip4 0x40
+#define img_skip5 0x50
+#define img_skip6 0x60
+#define img_skip7 0x70
+#define img_skip8 0x80
+#define img_skip9 0x90
+#define img_skip10 0xa0
 
 
-//________________________________________ text 
+//________________________________________ text
 
-// control chars etc. 
+// control chars etc.
 // 0..0x0f : control codes
 // 0x10..0x17 : reserved for more control codes or printable chars
-// 0x18..0x1f : custom chars 
+// 0x18..0x1f : custom chars
 // 0x20..0x7f : Standard ASCII
 // 0x80..0x93 : X tab
 // 0xa0..0xaf : y tab
@@ -195,7 +195,7 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 #define vspace 10 // character vertical spacing
 
 
-// Control character strings for display 
+// Control character strings for display
 #define del "\x02" // 500mS delay
 #define hspace "\x03" // half space
 #define bspace "\x04" // 2 pixel backspace
@@ -207,7 +207,7 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 
 //special display characters
 // add more below 0x18 and update startchar in font6x8.inc
-#define shortdot "\x1e\x04" 
+#define shortdot "\x1e\x04"
 
 #define uarr "\x18" // arrows
 #define darr "\x19"
@@ -281,6 +281,3 @@ const char* camnames[ncammodes] = {"", "128x96 x1 RGB", "128x96 x2 RGB", "128x96
 #define c_cya rgbto16(0,255,255)
 #define c_whi rgbto16(255,255,255)
 #define c_grey rgbto16(168,168,168)
-
-
-
