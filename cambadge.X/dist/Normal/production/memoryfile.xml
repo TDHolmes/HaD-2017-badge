@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<project>                                  
+  <executable name="dist/Normal/production/cambadge.X.production.elf">                 
+    <memory name="program">                 
+      <units>bytes</units>                 
+      <length>227324</length>                 
+      <used>109504</used>                     
+      <free>117820</free>                     
+    </memory>                              
+    <memory name="data">              
+      <units>bytes</units>                 
+      <length>65536</length>                 
+      <used>60676</used>                     
+      <free>4860</free>                     
+    </memory>                              
+  </executable>                            
+</project>                                 
