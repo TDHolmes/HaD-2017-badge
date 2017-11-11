@@ -27,6 +27,7 @@
 #include "Adafruit_Thermal.h"
 
 // HaD includes
+#include "cambadge.h"  // for some globals
 #include "globals.h"
 
 // Though most of these printers are factory configured for 19200 baud
@@ -101,7 +102,7 @@ uint32_t micros(void);
 // -------- HaD interface code
 
 #define DTR_PIN_READ (PORTBbits.RB1)
-#define ENABLE_DTR_INPUT() ( Nop() )
+//#define ENABLE_DTR_INPUT ( Nop )
 
 void priv_writeByteToUART(uint8_t b) {
     // Call HaD function HERE
@@ -114,10 +115,11 @@ bool priv_UARThasBytes(void) {
 }
 
 int16_t priv_readByteFromUART(void) {
+    int8_t i = 0;
     // Call HaD function HERE
     if (rxptr != 0){
         uint8_t data = rxbuf[0];
-        for (int8_t i=0; i < rxptr; i++) {
+        for (i=0; i < rxptr; i++) {
             rxbuf[i] = rxbuf[i+1];
         }
         rxptr -= 1;
@@ -281,7 +283,7 @@ void therm_begin(uint8_t heatTime) {
 
   // Enable DTR pin if requested
   if(dtrPin < 255) {
-    ENABLE_DTR_INPUT();
+    // ENABLE_DTR_INPUT();
     priv_write3Bytes(ASCII_GS, 'a', (1 << 5));
     dtrEnabled = true;
   }
@@ -331,6 +333,7 @@ void therm_setBarcodeHeight(uint8_t val) { // Default is 50
 }
 
 void therm_printBarcode(char *text, uint8_t type) {
+  uint8_t i = 0;
   therm_feed(1); // Recent firmware can't print barcode w/o feed first???
   priv_write3Bytes(ASCII_GS, 'H', 2);    // Print label below barcode
   priv_write3Bytes(ASCII_GS, 'w', 3);    // Barcode width 3 (0.375/1.0mm thin/thick)
@@ -339,7 +342,7 @@ void therm_printBarcode(char *text, uint8_t type) {
   int len = strlen(text);
   if(len > 255) len = 255;
   priv_writeBytes(len);                                  // Write length byte
-  for(uint8_t i=0; i<len; i++) priv_writeBytes(text[i]); // Write string sans NUL
+  for(i=0; i<len; i++) priv_writeBytes(text[i]); // Write string sans NUL
 #else
   uint8_t c, i=0;
   do { // Copy string + NUL terminator
@@ -597,6 +600,7 @@ void therm_therm_wake() {
 // ability.  Returns true for paper, false for no paper.
 // Might not work on all printers!
 bool therm_hasPaper() {
+    uint8_t i = 0;
 #if PRINTER_FIRMWARE >= 264
   priv_write3Bytes(ASCII_ESC, 'v', 0);
 #else
@@ -604,7 +608,7 @@ bool therm_hasPaper() {
 #endif
 
   int status = -1;
-  for(uint8_t i=0; i<10; i++) {
+  for(i=0; i<10; i++) {
     if( priv_UARThasBytes() ) {
       status = priv_readByteFromUART();
       break;
