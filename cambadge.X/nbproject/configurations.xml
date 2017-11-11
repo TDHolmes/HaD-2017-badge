@@ -46,6 +46,8 @@
       <itemPath>breakout.c</itemPath>
       <itemPath>tetrapuzz.c</itemPath>
       <itemPath>printer.c</itemPath>
+      <itemPath>Adafruit_Thermal.c</itemPath>
+      <itemPath>Adafruit_Thermal.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=cambadge.c hardware.c interrupts.c MDD_File_System/FSIO.c MDD_File_System/SD-SPI.c globals.c display.c serial.c fileformats.c particle.c browser.c camera.c apptemplate.c codescan.c utils.c imagefx.c scope.c box_game.c breakout.c tetrapuzz.c printer.c
+SOURCEFILES_QUOTED_IF_SPACED=cambadge.c hardware.c interrupts.c MDD_File_System/FSIO.c MDD_File_System/SD-SPI.c globals.c display.c serial.c fileformats.c particle.c browser.c camera.c apptemplate.c codescan.c utils.c imagefx.c scope.c box_game.c breakout.c tetrapuzz.c printer.c Adafruit_Thermal.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/cambadge.o ${OBJECTDIR}/hardware.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/MDD_File_System/FSIO.o ${OBJECTDIR}/MDD_File_System/SD-SPI.o ${OBJECTDIR}/globals.o ${OBJECTDIR}/display.o ${OBJECTDIR}/serial.o ${OBJECTDIR}/fileformats.o ${OBJECTDIR}/particle.o ${OBJECTDIR}/browser.o ${OBJECTDIR}/camera.o ${OBJECTDIR}/apptemplate.o ${OBJECTDIR}/codescan.o ${OBJECTDIR}/utils.o ${OBJECTDIR}/imagefx.o ${OBJECTDIR}/scope.o ${OBJECTDIR}/box_game.o ${OBJECTDIR}/breakout.o ${OBJECTDIR}/tetrapuzz.o ${OBJECTDIR}/printer.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/cambadge.o.d ${OBJECTDIR}/hardware.o.d ${OBJECTDIR}/interrupts.o.d ${OBJECTDIR}/MDD_File_System/FSIO.o.d ${OBJECTDIR}/MDD_File_System/SD-SPI.o.d ${OBJECTDIR}/globals.o.d ${OBJECTDIR}/display.o.d ${OBJECTDIR}/serial.o.d ${OBJECTDIR}/fileformats.o.d ${OBJECTDIR}/particle.o.d ${OBJECTDIR}/browser.o.d ${OBJECTDIR}/camera.o.d ${OBJECTDIR}/apptemplate.o.d ${OBJECTDIR}/codescan.o.d ${OBJECTDIR}/utils.o.d ${OBJECTDIR}/imagefx.o.d ${OBJECTDIR}/scope.o.d ${OBJECTDIR}/box_game.o.d ${OBJECTDIR}/breakout.o.d ${OBJECTDIR}/tetrapuzz.o.d ${OBJECTDIR}/printer.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/cambadge.o ${OBJECTDIR}/hardware.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/MDD_File_System/FSIO.o ${OBJECTDIR}/MDD_File_System/SD-SPI.o ${OBJECTDIR}/globals.o ${OBJECTDIR}/display.o ${OBJECTDIR}/serial.o ${OBJECTDIR}/fileformats.o ${OBJECTDIR}/particle.o ${OBJECTDIR}/browser.o ${OBJECTDIR}/camera.o ${OBJECTDIR}/apptemplate.o ${OBJECTDIR}/codescan.o ${OBJECTDIR}/utils.o ${OBJECTDIR}/imagefx.o ${OBJECTDIR}/scope.o ${OBJECTDIR}/box_game.o ${OBJECTDIR}/breakout.o ${OBJECTDIR}/tetrapuzz.o ${OBJECTDIR}/printer.o ${OBJECTDIR}/Adafruit_Thermal.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/cambadge.o.d ${OBJECTDIR}/hardware.o.d ${OBJECTDIR}/interrupts.o.d ${OBJECTDIR}/MDD_File_System/FSIO.o.d ${OBJECTDIR}/MDD_File_System/SD-SPI.o.d ${OBJECTDIR}/globals.o.d ${OBJECTDIR}/display.o.d ${OBJECTDIR}/serial.o.d ${OBJECTDIR}/fileformats.o.d ${OBJECTDIR}/particle.o.d ${OBJECTDIR}/browser.o.d ${OBJECTDIR}/camera.o.d ${OBJECTDIR}/apptemplate.o.d ${OBJECTDIR}/codescan.o.d ${OBJECTDIR}/utils.o.d ${OBJECTDIR}/imagefx.o.d ${OBJECTDIR}/scope.o.d ${OBJECTDIR}/box_game.o.d ${OBJECTDIR}/breakout.o.d ${OBJECTDIR}/tetrapuzz.o.d ${OBJECTDIR}/printer.o.d ${OBJECTDIR}/Adafruit_Thermal.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/cambadge.o ${OBJECTDIR}/hardware.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/MDD_File_System/FSIO.o ${OBJECTDIR}/MDD_File_System/SD-SPI.o ${OBJECTDIR}/globals.o ${OBJECTDIR}/display.o ${OBJECTDIR}/serial.o ${OBJECTDIR}/fileformats.o ${OBJECTDIR}/particle.o ${OBJECTDIR}/browser.o ${OBJECTDIR}/camera.o ${OBJECTDIR}/apptemplate.o ${OBJECTDIR}/codescan.o ${OBJECTDIR}/utils.o ${OBJECTDIR}/imagefx.o ${OBJECTDIR}/scope.o ${OBJECTDIR}/box_game.o ${OBJECTDIR}/breakout.o ${OBJECTDIR}/tetrapuzz.o ${OBJECTDIR}/printer.o
+OBJECTFILES=${OBJECTDIR}/cambadge.o ${OBJECTDIR}/hardware.o ${OBJECTDIR}/interrupts.o ${OBJECTDIR}/MDD_File_System/FSIO.o ${OBJECTDIR}/MDD_File_System/SD-SPI.o ${OBJECTDIR}/globals.o ${OBJECTDIR}/display.o ${OBJECTDIR}/serial.o ${OBJECTDIR}/fileformats.o ${OBJECTDIR}/particle.o ${OBJECTDIR}/browser.o ${OBJECTDIR}/camera.o ${OBJECTDIR}/apptemplate.o ${OBJECTDIR}/codescan.o ${OBJECTDIR}/utils.o ${OBJECTDIR}/imagefx.o ${OBJECTDIR}/scope.o ${OBJECTDIR}/box_game.o ${OBJECTDIR}/breakout.o ${OBJECTDIR}/tetrapuzz.o ${OBJECTDIR}/printer.o ${OBJECTDIR}/Adafruit_Thermal.o
 
 # Source Files
-SOURCEFILES=cambadge.c hardware.c interrupts.c MDD_File_System/FSIO.c MDD_File_System/SD-SPI.c globals.c display.c serial.c fileformats.c particle.c browser.c camera.c apptemplate.c codescan.c utils.c imagefx.c scope.c box_game.c breakout.c tetrapuzz.c printer.c
+SOURCEFILES=cambadge.c hardware.c interrupts.c MDD_File_System/FSIO.c MDD_File_System/SD-SPI.c globals.c display.c serial.c fileformats.c particle.c browser.c camera.c apptemplate.c codescan.c utils.c imagefx.c scope.c box_game.c breakout.c tetrapuzz.c printer.c Adafruit_Thermal.c
 
 
 CFLAGS=
@@ -232,6 +232,12 @@ ${OBJECTDIR}/printer.o: printer.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/printer.o 
 	@${FIXDEPS} "${OBJECTDIR}/printer.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -DICD4Tool=1  -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -O1 -MMD -MF "${OBJECTDIR}/printer.o.d" -o ${OBJECTDIR}/printer.o printer.c    -DXPRJ_Normal=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -fno-aggressive-loop-optimizations
 	
+${OBJECTDIR}/Adafruit_Thermal.o: Adafruit_Thermal.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/Adafruit_Thermal.o.d 
+	@${RM} ${OBJECTDIR}/Adafruit_Thermal.o 
+	@${FIXDEPS} "${OBJECTDIR}/Adafruit_Thermal.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -DICD4Tool=1  -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -O1 -MMD -MF "${OBJECTDIR}/Adafruit_Thermal.o.d" -o ${OBJECTDIR}/Adafruit_Thermal.o Adafruit_Thermal.c    -DXPRJ_Normal=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -fno-aggressive-loop-optimizations
+	
 else
 ${OBJECTDIR}/cambadge.o: cambadge.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
@@ -358,6 +364,12 @@ ${OBJECTDIR}/printer.o: printer.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/printer.o.d 
 	@${RM} ${OBJECTDIR}/printer.o 
 	@${FIXDEPS} "${OBJECTDIR}/printer.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -O1 -MMD -MF "${OBJECTDIR}/printer.o.d" -o ${OBJECTDIR}/printer.o printer.c    -DXPRJ_Normal=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -fno-aggressive-loop-optimizations
+	
+${OBJECTDIR}/Adafruit_Thermal.o: Adafruit_Thermal.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/Adafruit_Thermal.o.d 
+	@${RM} ${OBJECTDIR}/Adafruit_Thermal.o 
+	@${FIXDEPS} "${OBJECTDIR}/Adafruit_Thermal.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -O1 -MMD -MF "${OBJECTDIR}/Adafruit_Thermal.o.d" -o ${OBJECTDIR}/Adafruit_Thermal.o Adafruit_Thermal.c    -DXPRJ_Normal=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -fno-aggressive-loop-optimizations
 	
 endif
 
