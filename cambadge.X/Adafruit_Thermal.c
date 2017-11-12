@@ -97,7 +97,6 @@ void priv_delay(uint32_t delay_time_ms);
 // HaD badge specific methods
 void priv_writeByteToUART(uint8_t b);
 uint8_t digitalRead(uint8_t pin);
-uint32_t micros(void);
 
 // -------- HaD interface code
 
@@ -139,7 +138,52 @@ uint32_t micros(void) {
 }
 
 void priv_delay(uint32_t delay_time_ms) {
-    delayus(delay_time_ms * 1000);
+    kickwatchdog;
+    delayus((unsigned int)delay_time_ms * 1000);
+}
+
+
+/*! Sends an integer via UART encoded in ascii hexadecimal
+ *
+ * @param data (int64_t): Data to be sent. Must be cast to `int64_t`
+ * @retval Return code indicating success / failure of the start of the transmit
+ */
+void UART_sendint(int64_t data)
+{
+    int8_t shift_val = 48;
+    uint8_t val = 0;
+    uint8_t chr = 0;
+    if (data < 0) {
+        priv_writeByteToUART(0x2d);  // "-"
+        data = -data;
+    }
+    priv_writeByteToUART('0');
+    priv_writeByteToUART('x');
+
+    while (shift_val >= 0) {
+        // send the character
+        val = (data >> shift_val) & 0xff;
+        if (val != 0 || shift_val == 0) {
+            chr = (val & 0xF0) >> 4;
+            if (chr >= 0xA) {
+                chr += 0x37;  // into A-F
+            } else {
+                chr += 0x30;  // into 0-9
+            }
+            priv_writeByteToUART(chr);
+
+            chr = val & 0xF;
+            if (chr >= 0xA) {
+                chr += 0x37;  // into A-F
+            } else {
+                chr += 0x30;  // into 0-9
+            }
+            priv_writeByteToUART(chr);
+        }
+        shift_val -= 8;
+    }
+    priv_writeByteToUART('\r');
+    priv_writeByteToUART('\n');
 }
 
 // -------- Printer code
@@ -159,7 +203,10 @@ void therm_timeoutWait(void) {
   if(dtrEnabled) {
     while(priv_readDTRpin() == HIGH);
   } else {
-    while((long)(micros() - resumeTime) < 0L); // (syntax is rollover-proof)
+    while((long)(micros() - resumeTime) < 0L){
+        // UART_sendint((uint64_t)micros());
+        kickwatchdog;
+    } // (syntax is rollover-proof)
   }
 }
 
@@ -214,7 +261,7 @@ void priv_write4Bytes(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 
 // The underlying method for all high-level printing (e.g. println()).
 // The inherited Print class handles the rest!
-size_t write(uint8_t c) {
+size_t therm_write(uint8_t c) {
 
   if(c != 0x13) { // Strip carriage returns
     therm_timeoutWait();
@@ -242,10 +289,14 @@ void therm_begin(uint8_t heatTime) {
   // The printer can't start receiving data immediately upon power up --
   // it needs a moment to cold boot and initialize.  Allow at least 1/2
   // sec of uptime before printer can receive data.
+  priv_writeByteToUART('A');
+  kickwatchdog;
   therm_timeoutSet(500000L);
-
+  priv_writeByteToUART('B');
   therm_wake();
+  priv_writeByteToUART('C');
   therm_reset();
+  priv_writeByteToUART('D');
 
   // ESC 7 n1 n2 n3 Setting Control Parameter Command
   // n1 = "max heating dots" 0-255 -- max number of thermal print head
@@ -265,8 +316,11 @@ void therm_begin(uint8_t heatTime) {
   // possibly paper 'stiction'.  More heating interval = clearer print,
   // but slower printing speed.
 
+  priv_writeByteToUART('E');
   priv_write2Bytes(ASCII_ESC, '7');   // Esc 7 (print settings)
+  priv_writeByteToUART('F');
   priv_write3Bytes(11, heatTime, 40); // Heating dots, heat time, heat interval
+  priv_writeByteToUART('G');
 
   // Print density description from manual:
   // DC2 # n Set printing density
@@ -303,12 +357,12 @@ void therm_reset(void) {
   lineSpacing   =    6;
   barcodeHeight =   50;
 
-#if PRINTER_FIRMWARE >= 264
-  // Configure tab stops on recent printers
-  priv_write2Bytes(ASCII_ESC, 'D'); // Set tab stops...
-  priv_write4Bytes( 4,  8, 12, 16); // ...every 4 columns,
-  priv_write4Bytes(20, 24, 28,  0); // 0 marks end-of-list.
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    // Configure tab stops on recent printers
+    priv_write2Bytes(ASCII_ESC, 'D'); // Set tab stops...
+    priv_write4Bytes( 4,  8, 12, 16); // ...every 4 columns,
+    priv_write4Bytes(20, 24, 28,  0); // 0 marks end-of-list.
+  #endif
 }
 
 // Reset text formatting parameters.
@@ -338,17 +392,17 @@ void therm_printBarcode(char *text, uint8_t type) {
   priv_write3Bytes(ASCII_GS, 'H', 2);    // Print label below barcode
   priv_write3Bytes(ASCII_GS, 'w', 3);    // Barcode width 3 (0.375/1.0mm thin/thick)
   priv_write3Bytes(ASCII_GS, 'k', type); // Barcode type (listed in .h file)
-#if PRINTER_FIRMWARE >= 264
-  int len = strlen(text);
-  if(len > 255) len = 255;
-  priv_writeBytes(len);                                  // Write length byte
-  for(i=0; i<len; i++) priv_writeBytes(text[i]); // Write string sans NUL
-#else
-  uint8_t c, i=0;
-  do { // Copy string + NUL terminator
-    priv_writeBytes(c = text[i++]);
-  } while(c);
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    int len = strlen(text);
+    if(len > 255) len = 255;
+    priv_writeBytes(len);                                  // Write length byte
+    for(i=0; i<len; i++) priv_writeBytes(text[i]); // Write string sans NUL
+  #else
+    uint8_t c, i=0;
+    do { // Copy string + NUL terminator
+      priv_writeBytes(c = text[i++]);
+    } while(c);
+  #endif
   therm_timeoutSet((barcodeHeight + 40) * dotPrintTime);
   prevByte = '\n';
 }
@@ -386,19 +440,19 @@ void therm_normal(void) {
 }
 
 void therm_inverseOn(){
-#if PRINTER_FIRMWARE >= 268
-  priv_write3Bytes(ASCII_GS, 'B', 1);
-#else
-  priv_setPrintMode(INVERSE_MASK);
-#endif
+  #if PRINTER_FIRMWARE >= 268
+    priv_write3Bytes(ASCII_GS, 'B', 1);
+  #else
+    priv_setPrintMode(INVERSE_MASK);
+  #endif
 }
 
 void therm_inverseOff(){
-#if PRINTER_FIRMWARE >= 268
-  priv_write3Bytes(ASCII_GS, 'B', 0);
-#else
-  priv_unsetPrintMode(INVERSE_MASK);
-#endif
+  #if PRINTER_FIRMWARE >= 268
+    priv_write3Bytes(ASCII_GS, 'B', 0);
+  #else
+    priv_unsetPrintMode(INVERSE_MASK);
+  #endif
 }
 
 void therm_upsideDownOn(){
@@ -455,14 +509,14 @@ void therm_justify(char value){
 
 // Feeds by the specified number of lines
 void therm_feed(uint8_t x) {
-#if PRINTER_FIRMWARE >= 264
-  priv_write3Bytes(ASCII_ESC, 'd', x);
-  therm_timeoutSet(dotFeedTime * charHeight);
-  prevByte = '\n';
-  column   =    0;
-#else
-  while(x--) write('\n'); // Feed manually; old firmware feeds excess lines
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    priv_write3Bytes(ASCII_ESC, 'd', x);
+    therm_timeoutSet(dotFeedTime * charHeight);
+    prevByte = '\n';
+    column   =    0;
+  #else
+    while(x--) write('\n'); // Feed manually; old firmware feeds excess lines
+  #endif
 }
 
 // Feeds by the specified number of individual pixel rows
@@ -570,30 +624,30 @@ void therm_sleep(void) {
 // Put the printer into a low-energy state after the given number
 // of seconds.
 void therm_sleepAfter(uint16_t seconds) {
-#if PRINTER_FIRMWARE >= 264
-  priv_write4Bytes(ASCII_ESC, '8', seconds, seconds >> 8);
-#else
-  priv_write3Bytes(ASCII_ESC, '8', seconds);
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    priv_write4Bytes(ASCII_ESC, '8', seconds, seconds >> 8);
+  #else
+    priv_write3Bytes(ASCII_ESC, '8', seconds);
+  #endif
 }
 
 // Wake the printer from a low-energy state.
 void therm_wake(void) {
   therm_timeoutSet(0);   // Reset timeout counter
   priv_writeBytes(255); // Wake
-#if PRINTER_FIRMWARE >= 264
-  priv_delay(50);
-  priv_write4Bytes(ASCII_ESC, '8', 0, 0); // Sleep off (important!)
-#else
-  // Datasheet recommends a 50 mS delay before issuing further commands,
-  // but in practice this alone isn't sufficient (e.g. text size/style
-  // commands may still be misinterpreted on wake).  A slightly longer
-  // delay, interspersed with NUL chars (no-ops) seems to help.
-  for(uint8_t i=0; i<10; i++) {
-    priv_writeBytes(0);
-    therm_timeoutSet(10000L);
-  }
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    priv_delay(50);
+    priv_write4Bytes(ASCII_ESC, '8', 0, 0); // Sleep off (important!)
+  #else
+    // Datasheet recommends a 50 mS delay before issuing further commands,
+    // but in practice this alone isn't sufficient (e.g. text size/style
+    // commands may still be misinterpreted on wake).  A slightly longer
+    // delay, interspersed with NUL chars (no-ops) seems to help.
+    for(uint8_t i=0; i<10; i++) {
+      priv_writeBytes(0);
+      therm_timeoutSet(10000L);
+    }
+  #endif
 }
 
 // Check the status of the paper using the printer's self reporting
@@ -601,11 +655,11 @@ void therm_wake(void) {
 // Might not work on all printers!
 bool therm_hasPaper(void) {
     uint8_t i = 0;
-#if PRINTER_FIRMWARE >= 264
-  priv_write3Bytes(ASCII_ESC, 'v', 0);
-#else
-  priv_write3Bytes(ASCII_GS, 'r', 0);
-#endif
+  #if PRINTER_FIRMWARE >= 264
+    priv_write3Bytes(ASCII_ESC, 'v', 0);
+  #else
+    priv_write3Bytes(ASCII_GS, 'r', 0);
+  #endif
 
   int status = -1;
   for(i=0; i<10; i++) {

@@ -121,7 +121,7 @@ extern unsigned int avi_frametime, avi_framelen, avi_frames; //uS per frame, byt
 extern unsigned int avi_framenum, avi_start; // current frame number, file offset of image data of first frame (after 00dc chunk header)
 
 // Added by Tyler
-extern uint32_t systick_ms;
+extern volatile uint32_t systick_ms;
 
 //___________________________________________________________________________ function prototypes
 

@@ -31,7 +31,7 @@
 // *** EDIT THIS NUMBER ***  Printer firmware version is shown on test
 // page (hold feed button when connecting power).  Number used here is
 // integerized, e.g. 268 = 2.68 firmware.
-#define PRINTER_FIRMWARE 268
+#define PRINTER_FIRMWARE 269
 
 
 // Barcode types and charsets
@@ -122,7 +122,10 @@
  #define MSI     10
 #endif
 
-size_t write(uint8_t c);
+size_t therm_write(uint8_t c);
+
+uint32_t micros(void);
+void UART_sendint(int64_t data);
 
 void therm_boldOff(void);
 void therm_boldOn(void);

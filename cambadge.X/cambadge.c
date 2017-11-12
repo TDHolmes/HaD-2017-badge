@@ -5,6 +5,8 @@
 #include "cambadge.h"
 #include "globals.h"
 
+#include "Adafruit_Thermal.h"
+
 #if debug_dma==1
 #warning debug_dma enabled - SD card not useable
 #endif
@@ -57,15 +59,12 @@
 typedef char* (*application)(unsigned int);
 application const apps[] = {applist}; // list of function pointers to applications
 
-uint32_t systick_ms = 0;
-
 
 void main(void) {
     unsigned int i, state, dispowerdown = 0;
     unsigned int powerbuttimer = 0, mounttimer = 0; // power button-down timer, auto poweroff timer, card detect debounce timer
     unsigned int y, scroll, appnum = 0; // menu display
-
-
+    static uint64_t previous_time = 0;
 
     inithardware();
     setupints();
@@ -96,13 +95,17 @@ void main(void) {
         tick = 0; // event flags to be set in tick but only for one pass through main loop
         butpress = 0;
         cardinsert = 0;
-
-        if (IFS0bits.T4IF) { //  timer tick. nominally 20mS but can be longer of tasks take more time
-            systick_ms += 20;
+        // u2txbyte('.');
+        // UART_sendint( micros() );
+        if (previous_time != micros()) { //  timer tick. nominally 20mS but can be longer of tasks take more time
             tick = 1 + TMR4 / (ticktime * (clockfreq / 1000000) / t4prescale); // estimate number of missed ticks
-            TMR4 = -(ticktime * (clockfreq / 1000000) / t4prescale); // reset timer
-            LATCINV = 1 << 5;
-            IFS0CLR = _IFS0_T4IF_MASK;
+            // u2txbyte('t');
+            // u2txbyte('i');
+            // u2txbyte('c');
+            // u2txbyte('k');
+            // u2txbyte('\r');
+            // u2txbyte('\n');
+            previous_time = micros();
             readbatt(); // read battery voltage
             readbuttons();
 
