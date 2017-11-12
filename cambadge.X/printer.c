@@ -2,13 +2,17 @@
  *
  */
 #include <xc.h>
+#include <sys/attribs.h> // Interrupt vector constants
 #include <stdio.h> // for printf
+
 #include "pindefs.h" // IO pin defs and access macros
 #include "appmap.h" // main menu configuration
 #include "MDD_File_System/FSIO.h"
-#include <sys/attribs.h> // Interrupt vector constants
 #include "cambadge.h"
 #include "globals.h"
+
+#include "Adafruit_Thermal.h"
+#include "adalogo.h"
 
 #define ct_bmp 0
 #define ct_dir 1
@@ -93,14 +97,17 @@ char* printer(unsigned int action)
 
         case act_init:
             // add any code here that needs to run once at powerup - e.g. hardware detection/initialisation
+             therm_init();
+             therm_begin(120);
             return(0);
 
         case act_powerdown:
             // add any code here that needs to run before powerdown
             return(0);
 
-        case act_start :
+        case act_start:
             // called once when app is selected from menu
+            therm_printBitmap(adalogo_width, adalogo_height, adalogo_data);
             return(0);
       } //switch
 
@@ -113,6 +120,9 @@ char* printer(unsigned int action)
     if(!tick) return(0);
 
     // Do things here every 1 / 20hz
+
+    /* BEGIN CAMERA STUFF
+
     switch (state) {
 
         case s_camstart:
@@ -388,6 +398,8 @@ char* printer(unsigned int action)
 
 
     } //switch state
+
+    // END CAMERA STUFF */
 
     if(butpress & but1) {
         state = s_camstart;  // clear screen & restart

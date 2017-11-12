@@ -24,11 +24,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Adafruit_Thermal.h"
 
 // HaD includes
 #include "cambadge.h"  // for some globals
 #include "globals.h"
+#include "Adafruit_Thermal.h"
 
 // Though most of these printers are factory configured for 19200 baud
 // operation, a few rare specimens instead work at 9600.  If so, change
@@ -116,7 +116,6 @@ bool priv_UARThasBytes(void) {
 
 int16_t priv_readByteFromUART(void) {
     int8_t i = 0;
-    // Call HaD function HERE
     if (rxptr != 0){
         uint8_t data = rxbuf[0];
         for (i=0; i < rxptr; i++) {
@@ -151,12 +150,12 @@ void therm_init(void) {
 }
 
 // This method sets the estimated completion time for a just-issued task.
-void therm_therm_timeoutSet(unsigned long x) {
+void therm_timeoutSet(unsigned long x) {
   if(!dtrEnabled) resumeTime = micros() + x;
 }
 
 // This function waits (if necessary) for the prior task to complete.
-void therm_therm_timeoutWait() {
+void therm_timeoutWait(void) {
   if(dtrEnabled) {
     while(priv_readDTRpin() == HIGH);
   } else {
@@ -238,6 +237,7 @@ size_t write(uint8_t c) {
 }
 
 void therm_begin(uint8_t heatTime) {
+  // Default heatTime: 120
 
   // The printer can't start receiving data immediately upon power up --
   // it needs a moment to cold boot and initialize.  Allow at least 1/2
@@ -312,7 +312,7 @@ void therm_reset(void) {
 }
 
 // Reset text formatting parameters.
-void therm_setDefault() {
+void therm_setDefault(void) {
   therm_online();
   therm_justify('L');
   therm_inverseOff();
@@ -376,11 +376,11 @@ void priv_unsetPrintMode(uint8_t mask) {
   maxColumn  = (printMode & DOUBLE_WIDTH_MASK ) ? 16 : 32;
 }
 
-void priv_writePrintMode() {
+void priv_writePrintMode(void) {
   priv_write3Bytes(ASCII_ESC, '!', printMode);
 }
 
-void therm_normal() {
+void therm_normal(void) {
   printMode = 0;
   priv_writePrintMode();
 }
@@ -393,7 +393,7 @@ void therm_inverseOn(){
 #endif
 }
 
-void therm_therm_inverseOff(){
+void therm_inverseOff(){
 #if PRINTER_FIRMWARE >= 268
   priv_write3Bytes(ASCII_GS, 'B', 0);
 #else
@@ -413,7 +413,7 @@ void therm_doubleHeightOn(){
   priv_setPrintMode(DOUBLE_HEIGHT_MASK);
 }
 
-void therm_therm_doubleHeightOff(){
+void therm_doubleHeightOff(){
   priv_unsetPrintMode(DOUBLE_HEIGHT_MASK);
 }
 
@@ -437,7 +437,7 @@ void therm_boldOn(){
   priv_setPrintMode(BOLD_MASK);
 }
 
-void therm_therm_boldOff(){
+void therm_boldOff(){
   priv_unsetPrintMode(BOLD_MASK);
 }
 
@@ -473,7 +473,7 @@ void therm_feedRows(uint8_t rows) {
   column   =    0;
 }
 
-void therm_flush() {
+void therm_flush(void) {
   priv_writeBytes(ASCII_FF);
 }
 
@@ -511,7 +511,7 @@ void therm_underlineOn(uint8_t weight) {
   priv_write3Bytes(ASCII_ESC, '-', weight);
 }
 
-void therm_therm_underlineOff() {
+void therm_underlineOff(void) {
   priv_write3Bytes(ASCII_ESC, '-', 0);
 }
 
@@ -558,12 +558,12 @@ void therm_offline(){
 }
 
 // Take the printer back online. Subsequent print commands will be obeyed.
-void therm_therm_online(){
+void therm_online(){
   priv_write3Bytes(ASCII_ESC, '=', 1);
 }
 
 // Put the printer into a low-energy state immediately.
-void therm_sleep() {
+void therm_sleep(void) {
   therm_sleepAfter(1); // Can't be 0, that means 'don't sleep'
 }
 
@@ -578,7 +578,7 @@ void therm_sleepAfter(uint16_t seconds) {
 }
 
 // Wake the printer from a low-energy state.
-void therm_therm_wake() {
+void therm_wake(void) {
   therm_timeoutSet(0);   // Reset timeout counter
   priv_writeBytes(255); // Wake
 #if PRINTER_FIRMWARE >= 264
@@ -599,7 +599,7 @@ void therm_therm_wake() {
 // Check the status of the paper using the printer's self reporting
 // ability.  Returns true for paper, false for no paper.
 // Might not work on all printers!
-bool therm_hasPaper() {
+bool therm_hasPaper(void) {
     uint8_t i = 0;
 #if PRINTER_FIRMWARE >= 264
   priv_write3Bytes(ASCII_ESC, 'v', 0);
@@ -648,7 +648,7 @@ void therm_setCodePage(uint8_t val) {
   priv_write3Bytes(ASCII_ESC, 't', val);
 }
 
-void therm_tab() {
+void therm_tab(void) {
   priv_writeBytes(ASCII_TAB);
   column = (column + 4) & 0b11111100;
 }

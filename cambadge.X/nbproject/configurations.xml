@@ -16,6 +16,8 @@
       <itemPath>globals.h</itemPath>
       <itemPath>appmap.h</itemPath>
       <itemPath>font6x8.inc</itemPath>
+      <itemPath>Adafruit_Thermal.h</itemPath>
+      <itemPath>adalogo.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -47,7 +49,6 @@
       <itemPath>tetrapuzz.c</itemPath>
       <itemPath>printer.c</itemPath>
       <itemPath>Adafruit_Thermal.c</itemPath>
-      <itemPath>Adafruit_Thermal.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -69,7 +70,7 @@
         <platformTool>ICD4Tool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>1.44</languageToolchainVersion>
-        <platform>3</platform>
+        <platform>4</platform>
       </toolsSet>
       <compileType>
         <linkerTool>

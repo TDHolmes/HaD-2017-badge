@@ -20,10 +20,11 @@
   Modified by Tyler Holmes to work with the HaD 2017 badge.
   ------------------------------------------------------------------------*/
 
-#ifndef ADAFRUIT_THERMAL_H
-#define ADAFRUIT_THERMAL_H
+#ifndef _ADAFRUIT_THERMAL_H_
+#define _ADAFRUIT_THERMAL_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 
@@ -123,49 +124,50 @@
 
 size_t write(uint8_t c);
 
-void therm_begin(uint8_t heatTime);
-void therm_boldOff();
-void therm_boldOn();
-void therm_doubleHeightOff();
-void therm_doubleHeightOn();
-void therm_doubleWidthOff();
-void therm_doubleWidthOn();
+void therm_boldOff(void);
+void therm_boldOn(void);
+void therm_doubleHeightOff(void);
+void therm_doubleHeightOn(void);
+void therm_doubleWidthOff(void);
+void therm_doubleWidthOn(void);
 void therm_feed(uint8_t x);
-void therm_feedRows(uint8_t);
-void therm_flush();
-void therm_inverseOff();
-void therm_inverseOn();
+void therm_feedRows(uint8_t rows);
+void therm_flush(void);
+void therm_inverseOff(void);
+void therm_inverseOn(void);
 void therm_justify(char value);
-void therm_offline();
-void therm_online();
+void therm_offline(void);
+void therm_online(void);
 void therm_printBarcode(char *text, uint8_t type);
 void therm_printBitmap(int w, int h, const uint8_t *bitmap);
-void therm_normal();
-void therm_reset();
+void therm_normal(void);
+void therm_reset(void);
 void therm_setBarcodeHeight(uint8_t val);
 void therm_setCharSpacing(int spacing); // Only works w/recent firmware
 void therm_setCharset(uint8_t val);
 void therm_setCodePage(uint8_t val);
-void therm_setDefault();
+void therm_setDefault(void);
 void therm_setLineHeight(int val);
 void therm_setMaxChunkHeight(int val);
 void therm_setSize(char value);
-void therm_setTimes(unsigned long, unsigned long);
-void therm_sleep();
+void therm_setTimes(unsigned long p, unsigned long f);
+void therm_sleep(void);
 void therm_sleepAfter(uint16_t seconds);
-void therm_strikeOff();
-void therm_strikeOn();
-void therm_tab();                         // Only works w/recent firmware
-void therm_test();
-void therm_testPage();
-void therm_timeoutSet(unsigned long);
-void therm_timeoutWait();
-void therm_underlineOff();
+void therm_strikeOff(void);
+void therm_strikeOn(void);
+void therm_tab(void);                         // Only works w/recent firmware
+void therm_test(void);
+void therm_testPage(void);
+void therm_timeoutSet(unsigned long x);
+void therm_timeoutWait(void);
+void therm_underlineOff(void);
 void therm_underlineOn(uint8_t weight);
-void therm_upsideDownOff();
-void therm_upsideDownOn();
-void therm_wake();
-bool therm_hasPaper();
+void therm_upsideDownOff(void);
+void therm_upsideDownOn(void);
+void therm_wake(void);
+bool therm_hasPaper(void);
 
+void therm_init(void);
+void therm_begin(uint8_t heatTime);
 
-#endif // ADAFRUIT_THERMAL_H
+#endif // _ADAFRUIT_THERMAL_H_
