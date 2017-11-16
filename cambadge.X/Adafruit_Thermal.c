@@ -34,7 +34,7 @@
 // operation, a few rare specimens instead work at 9600.  If so, change
 // this constant.  This will NOT make printing slower!  The physical
 // print and feed mechanisms are the bottleneck, not the port speed.
-#define BAUDRATE  19200
+#define BAUDRATE  9600
 
 // ASCII codes used by some of the printer config commands:
 #define ASCII_TAB '\t' // Horizontal tab
@@ -46,9 +46,21 @@
 #define ASCII_FS   28  // Field separator
 #define ASCII_GS   29  // Group separator
 
+// === Character commands ===
+
+#define INVERSE_MASK       (1 << 1) // Not in 2.6.8 firmware (see inverseOn())
+#define UPDOWN_MASK        (1 << 2)
+#define BOLD_MASK          (1 << 3)
+#define DOUBLE_HEIGHT_MASK (1 << 4)
+#define DOUBLE_WIDTH_MASK  (1 << 5)
+#define STRIKE_MASK        (1 << 6)
+
 // Arduino definies
 #define HIGH (1)
 #define LOW  (0)
+
+#define printDensity   10 // 100% (? can go higher, text is darker but fuzzy)
+#define printBreakTime  2 // 500 uS
 
 // Because there's no flow control between the printer and Arduino,
 // special care must be taken to avoid overrunning the printer's buffer.
@@ -82,6 +94,8 @@ bool dtrEnabled;    // True if DTR pin set & printer initialized
 unsigned long resumeTime;    // Wait until micros() exceeds this before sending byte
 unsigned long dotPrintTime;  // Time to print a single dot line, in microseconds
 unsigned long dotFeedTime;   // Time to feed a single dot line, in microseconds
+
+#define greyscale_rgb16(data) ((((data & 0xF800) >> 11) + ((data & 0x07E0) >> 5) + (data & 0x0005)) / 256)
 
 // ------ private methods
 
@@ -330,9 +344,6 @@ void therm_begin(uint8_t heatTime) {
   // is n(D7-D5)*250us.
   // (Unsure of the default value for either -- not documented)
 
-#define printDensity   10 // 100% (? can go higher, text is darker but fuzzy)
-#define printBreakTime  2 // 500 uS
-
   priv_write3Bytes(ASCII_DC2, '#', (printBreakTime << 5) | printDensity);
 
   // Enable DTR pin if requested
@@ -406,15 +417,6 @@ void therm_printBarcode(char *text, uint8_t type) {
   therm_timeoutSet((barcodeHeight + 40) * dotPrintTime);
   prevByte = '\n';
 }
-
-// === Character commands ===
-
-#define INVERSE_MASK       (1 << 1) // Not in 2.6.8 firmware (see inverseOn())
-#define UPDOWN_MASK        (1 << 2)
-#define BOLD_MASK          (1 << 3)
-#define DOUBLE_HEIGHT_MASK (1 << 4)
-#define DOUBLE_WIDTH_MASK  (1 << 5)
-#define STRIKE_MASK        (1 << 6)
 
 void priv_setPrintMode(uint8_t mask) {
   printMode |= mask;
