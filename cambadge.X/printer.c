@@ -21,28 +21,24 @@
 char camname[12];
 
 #define brmax 10 // no of files displayed
+#define s_camstart 0
+#define s_camlive 1
+#define s_camsave 2
+#define s_camsaved 3
+#define s_camerror 4
+#define s_camgrab 5
+#define s_camwait 6
+#define s_camrestart 7
+#define s_camquit  8
+#define s_camavistart 9
+#define s_waitavi 10
+#define s_aviloop 11
+#define s_avierr 12
 
-typedef enum {
-    //states
-    s_startbrowse,
-    s_restartbrowse,
-    s_showbrowse,
-    s_waitbrowse,
-    s_infobrowse,
-    s_ibwait,
-    s_gobrowse,
-    s_aviplaying,
-    s_gbwait,
-    s_quitbrowse,
-    s_newdir,
-    s_delete,
-    s_avipause,
-    s_startshow,
-    s_waitshow,
-    s_nextshow,
-    s_quitshow,
-} printer_flow_t;
 
+#define ct_bmp 0
+#define ct_dir 1
+#define ct_avi 2
 
 /*! create a formatted filename CAMxxx.BMP, or dirname CAM000
  */
@@ -87,395 +83,257 @@ void docamname(unsigned int n, unsigned int ct) {
  */
 char* printer(unsigned int action)
 {
-    unsigned i, j, y;
-    static printer_flow_t brstate = s_startbrowse;
+    static unsigned int camstate = s_camstart;
+    static unsigned int camfile = 0, camdir = 0, cam_cammode, frame;
+    static unsigned int rectime, explock,campage;
+    unsigned int i;
 
-    static unsigned int brscroll, brsel, brlast, brnfiles, brendflag, showtime, showtimer, shown;
+    if (action == act_name) return ("Printer");
+    else if (action == act_help) return ("Takes pictures and\nprints them!");
+    if (action == act_start) camstate = s_camstart;
+    if (action != act_poll) return (0);
 
-    static char brname[15];
-    static unsigned int brattrs, brlen, brtime, brtype;
-    static unsigned char shownames,showinfo;
+    switch (camstate) {
 
-    switch (action) {
-        case act_name:
-            return("Printer!");
+        case s_camstart:
+            explock = 0;
+            camfile = 0;
+            camdir = 0;
+            camdir = 0;
+            cammode = cammode_128x96_z1;
+            cam_enable(cammode); // buffer offset  so camera data is word aligned ( 1st byte is garbage due to PMP buffering), add space for AVI chunk header
 
-        case act_help:
-            return("Prints a picture\ndoes a thing\nwoo!");
+        case s_camrestart:
+            if(butstate) break; // in case trig held
+            printf(cls butcol "EXIT  " whi inv " Camera " inv butcol "  Light" bot "Mode   ");
 
-        case act_init:
-            // add any code here that needs to run once at powerup - e.g. hardware detection/initialisation
-            return(0);
+            if (explock) printf(inv "ExLock" inv);
+            else printf("ExLock");
 
-        case act_powerdown:
-            // add any code here that needs to run before powerdown
-            return(0);
+            // printf(tabx14 hspace inv "BMP" inv hspace "AVI");
+            printf(taby11 tabx0 yel "%s", camnames[cammode]);
+            camstate = s_camlive;
+            cam_grabenable(camen_start, 7, 0);
+            led1_off;
+            break;
 
-        case act_start:
-            // called once when app is selected from menu
-            therm_init();
-            therm_begin(120);
-            return(0);
-      } //switch
+        case s_camlive:
+            if (!cardmounted) camfile = 0;
 
-    if (action != act_poll) {
-        return(0);  // invalid command
-    }
-
-    // do anything that needs to be faster than tick here.
-
-    if(!tick) return(0);
-
-    // Do things here every 1 / 20hz
-
-    // /* BEGIN BROWSER STUFF
-
-    switch (brstate) {
-
-        case s_startbrowse:
-            FSchdir("\\");
-            brendflag = 0;
-        case s_newdir:
-
-            brsel = 0;
-            brscroll = 0;
-            brendflag = 1;
-
-        case s_restartbrowse: // return to previous brstate after doing something with a file
-
-            brnfiles = 0;
-            i = FindFirst("*.*", ATTR_MASK &~ATTR_VOLUME, &searchfile);
-            if (i) {
-                printf(cls inv "No files" inv del);
-                brstate = s_quitbrowse;
+            if (butpress & powerbut) {
+                led1_off;
+                cam_enable(0);
+                camstate = s_camquit;
                 break;
             }
-            do brnfiles++; while (FindNext(&searchfile) == 0);
-            printf(cls);
-            if (brsel > brnfiles - 1) brsel = brnfiles - 1; // in case file deleted
-            brstate = s_showbrowse;
-
-            if (!brendflag) break;
-            // if not at root, when entering a dir set position at last file for quick access to photos
-            FSgetcwd(brname, 4);
-            if (brname[1] == 0) break; // at root ( 1 char path long name)
-            brsel = brnfiles - 1;
-            if (brsel > brmax) brscroll = brnfiles - brmax;
-            brendflag = 0;
-            break;
-
-
-
-        case s_showbrowse:
-            i = FindFirst("*.*", ATTR_MASK&~ATTR_VOLUME, &searchfile);
-            y = 0;
-            for (i = 0; i != brscroll; i++) FindNext(&searchfile); // scroll offset
-            printf(tabx0 taby1);
-            dispy -= 3; // vertically centre
-            do {
-                bgcol = c_blk;
-                fgcol = (searchfile.attributes & ATTR_DIRECTORY) ? c_yel : c_whi;
-                if (y + brscroll == brsel) { // currently selected file - grab the file info
-                    bgcol = fgcol;
-                    fgcol = c_blk;
-                    brattrs = searchfile.attributes;
-                    brlen = searchfile.filesize;
-                    brtime = searchfile.timestamp;
-                    for (brtype = 0, j = 0, i = 0; i != 13; i++) {
-                        brname[i] = searchfile.filename[i];
-                        if (j) if ((brtype & 0xFF0000) == 0) brtype = (brtype << 8) | (unsigned int) searchfile.filename[i]; // file extension as word for easy comparison
-                        if (searchfile.filename[i] == '.') j = 1; //flag to start copying extension
-
-                    }
-                }
-
-                printf("\n%-20s", searchfile.filename);
-                //while(dispx<15*charwidth) dispchar(' '); // pad to erase any previous text after scroll
-            } while (((i = FindNext(&searchfile)) == 0) && (++y < brmax));
-
-
-            printf(top butcol "EXIT" whi " %3d Items" butcol tabx16, brnfiles);
-            printf((brattrs & ATTR_DIRECTORY) ? "Show" : "Info");
-
-            printf(bot butcol "  " uarr "         " darr"      Go" whi);
-            brstate = s_waitbrowse;
-            break;
-
-        case s_waitbrowse: // wait for button
-
-            if (!butpress) break;
-            if (butpress & (powerbut)) {
-                brstate = s_quitbrowse;
-                break;
-            } // exit
-            if (brnfiles == 0) break;
-            if (butpress & but4) {
-                brstate = (brattrs & ATTR_DIRECTORY) ? s_startshow : s_infobrowse;
-                break;
-            }
-            if (butpress & (but3 | but5)) {
-                if (brattrs & ATTR_DIRECTORY) {
-                    FSchdir(brname);
-                    brstate = s_newdir;
-                    break;
-                }// enter dir, start at ..
-                else {
-                    brstate = s_gobrowse;
-                    break;
-                }
-            }
-
-            if (butpress & but1) { // up
-                if (brsel) brsel--;
-                if (brsel < brscroll) brscroll--;
-            }
-
-            if (butpress & but2) if (brsel < brnfiles - 1) { // down
-                    brsel++;
-                    if (brsel - brscroll >= brmax) brscroll++;
-                }
-
-            brstate = s_showbrowse;
-            break;
-
-        case s_infobrowse: // show file info
-            printf(cls whi "%s\n\n", brname);
-            const char months[16][4] = {"???", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "???", "???", "???"};
-            printf("%02d %s %04d  %02d:%02d\n\n", (brtime >> 16) & 0x1f, months[((brtime >> 21)&0x0f)], 1980 + ((brtime >> 25)&0x7f), (brtime >> 11) &0x1f, (brtime >> 5)&0x3f);
-            printf("Length %d\n\n", brlen);
-            switch (brtype) {
-                case filetype('A', 'V', 'I'):
-                    i = openavi(brname);
-                    FSfclose(fptr);
-
-                    if (i) printf("\nError:\n%d %s", i, avierrors[i]);
-                    else {
-                        printf("%d x %d, %2d Bpp\n\n", avi_width, avi_height, avi_bpp * 8);
-                        printf("%d Frames %d FPS\n", avi_frames, 1000000 / avi_frametime);
-                    }
-                    break;
-
-                case filetype('B', 'M', 'P'):
-                    i = loadbmp(brname, 0);
-                    printf("%d x %d, %2d Bpp\n\n", avi_width, avi_height, avi_bpp * 8);
-                    if (i) {
-                        printf("Error:\n%s", avierrors[i]);
-                        break;
-                    }
-
-                    break;
-
-                case filetype('T', 'X', 'T'):
-
-                    break;
-
-            } // switch brtype
-
-            printf(butcol bot "Back    Delete     Go" whi);
-            brstate = s_ibwait;
-
-            break;
-
-        case s_ibwait:
-
-            if (!butpress) break;
-            brstate = s_restartbrowse;
-            if (butpress & but2) brstate = s_delete;
-            if (butpress & but3)brstate = s_gobrowse;
-
-            break;
-
-
-
-        case s_gobrowse:
-
-
-            brstate = s_gbwait; //default
-            printf(cls whi);
-            switch (brtype) {
-                case filetype('A', 'V', 'I'):
-
-
-                    i = openavi(brname);
-
-                    if (i) {
-                        FSfclose(fptr);
-                        printf(red "Open error:\n%s\n" whi, avierrors[i]);
-                        brstate = s_gbwait;
-                        break;
-                    }
-
-
-                    i = avi_frametime * (clockfreq / 1000000) / 256;
-                    T2CON = 0b1000000001110000; // prescale 256
-                    PR2 = i;
-                    TMR2 = 0;
-                    IFS0SET = _IFS0_T2IF_MASK; // force first
-                    brstate = s_aviplaying;
-                    printf(bot butcol "Pause    Delete  Back" top tabx18 "Off");
-                    showinfo=1;
-                    if (avi_height > 96) delayus(300000); // display prompt before overwritten by image
-                    break;
-
-                case filetype('B', 'M', 'P'):
-                    printf(cls);
-                    i = loadbmp(brname, 2);
-
-                    if (i) {
-                        printf(red "Error:\n%s" whi, avierrors[i]);
-                        break;
-                    }
-                    printf(whi bot butcol tabx8 "Delete   Back");
-                    break;
-
-
-                default:
-                    printf(cls "Don't know what to\ndo with that filetype");
-                    printf(whi bot butcol tabx8 "Delete   Back");
-                    break;
-
-            } // switch brtype
-
-
-
-            break;
-
-        case s_gbwait:
-
-            if (!butpress) break;
-            brstate = s_restartbrowse;
-
-            if (butpress & but2) brstate = s_delete;
-
-            break;
-
-
-        case s_delete:
-            printf(bot butcol "Hold to delete       " del);
-            readbuttons();
-            if (butstate & but2) {
-                printf(bot "Deleting        ");
-                FSremove(brname);
-                if(brscroll) brscroll--;
-            } else printf(bot "Not deleted");
-
-            brstate = s_restartbrowse;
-
-            break;
-
-        case s_avipause:
-            if (!butpress) break;
             if (butpress & but1) {
-                printf(bot butcol "Pause");
-                butpress = 0;
-            } // avoid pause loop
-            // drop back into playing to other button functions work
-            brstate = s_aviplaying;
-
-        case s_aviplaying:
+                if (++cammode >= ncammodes) cammode = 1;
+                cam_enable(cammode);
+                camstate = s_camrestart;
+                break;
+            }
             if (butpress & but2) {
-                FSfclose(fptr);
-                brstate = s_delete;
-                break;
-            } //delete
-            if (butpress & but1) {
-                brstate = s_avipause;
-                printf(bot butcol inv "Pause" inv);
+                explock ^= 1;
+                cam_setreg(0x13, explock ? 0xe0 : 0xe7);
+                camstate = s_camrestart;
                 break;
             }
-            if(butpress & but4) {showinfo^=1;printf(cls); break;}
-            if (butpress) {
-                FSfclose(fptr);
-                brstate = s_restartbrowse;
+            if (butpress & but4) {
+                if (led1) {
+                    led1_on;
+                }
+                else {
+                    led1_off;
+                }
+            }
+            if (butpress & but5) {
+                camstate = s_camgrab;
                 break;
             }
-            if (IFS0bits.T2IF == 0) break;
-            IFS0CLR = _IFS0_T2IF_MASK;
+            if (!cam_newframe) break;
+            if (camflags & camopt_mono) monopalette(0, 255);
+            cam_newframe = 0; // clear now in case display takes longer than cam frame time
+            dispimage(0, 12, xpixels, ypixels, (camflags & camopt_mono) ? (img_mono | img_revscan) : (img_rgb565 | img_revscan), cambuffer + 8);
+            break;
 
-            i = showavi();
-            if (avi_height <= 96) if(showinfo)  printf(top yel "%4d/%-4d %4ds", avi_framenum, avi_frames, avi_framenum * avi_frametime / 1000000);
+        case s_avierr:
+            if (!butpress) break;
+            camstate = s_camrestart;
+            break;
+
+        case s_camavistart:
+            printf(bot whi);
+            camstate = s_camrestart; // in case error
+            if (!cardmounted) {
+                printf(inv"No Card         " inv del);
+                break;
+            }
+            i = FSchdir("\\CAMVIDEO");
             if (i) {
-                FSfclose(fptr);
-                printf(cls red "Play Error %s" whi);
-                brstate = s_ibwait;
-                break;
+                FSmkdir("CAMVIDEO");
+                FSchdir("CAMVIDEO");
             }
-            break;
-
-
-        case s_quitbrowse:
-            return ("");
-            break;
-
-        case s_startshow:
-            brstate = s_quitshow; // assume error
-
-            FSchdir(brname);
-            i = FindFirst("*.BMP", ATTR_MASK&~ATTR_VOLUME, &searchfile);
-            if (i) {
-                printf(cls whi "BMP Slideshow\n\nNo .BMP files" del del);
-                break;
-            }
-
-            showtime = 2000000 / ticktime;
-            showtimer = showtime;
-            printf(cls butcol "EXIT       Show Name" bot "Slower   Faster  Next" tabx0 taby3 whi "BMP Slideshow" del del);
-            shown = 0;
-            shownames=0;
-            brstate = s_waitshow;
-            break;
-
-
-        case s_waitshow:
-            if (butpress & powerbut) brstate = s_quitshow;
-            if (butpress & but3) showtimer = showtime;
-            if (butpress & but1) if (showtime > 1000000 / ticktime) showtime -= (1000000 / ticktime);
-            if (butpress & but2) if (showtime < 10000000 / ticktime) showtime += 1000000 / ticktime;
-            if (butpress & (but2 | but1)) printf(bot tabx4 whi "%2d", showtime / (1000000 / ticktime));
-            if (butpress & but4) shownames^=1;
-            if (!tick) break;
-            showtimer += tick;
-            if (showtimer < showtime) break;
-
+            i = 0;
             do {
+                docamname(camfile++, ct_avi);
+                printf(bot "%-21s" tabx17 red inv "REC" inv whi, camname);
+                fptr = FSfopen(camname, FS_READ);
+                i = (fptr != NULL);
+                if (i) FSfclose(fptr);
+            } while (i);
 
-                i = loadbmp(searchfile.filename, 2);
-                if(shownames) (printf(top grey "%s",searchfile.filename));
+            fptr = FSfopen(camname, FS_WRITE);
+            FSchdir("\\");
+            if (fptr == NULL) {
+                printf(bot "Error FileOpen  " del del);
+                FSfclose(fptr);
+                break;
+            }
 
-                if (i == 0) shown = 1; // found at least one good file
+            T5CON = 0b1000000001110000; // timer to measure grab+save time for playback framerate
+            PR5 = 0xffff;
+            TMR5 = 0; // timer on, /256 prescale
+            IFS0bits.T5IF = 0; // detect roll
 
-                if (FindNext(&searchfile)) { // no more files
+            rectime = 0;
+            avi_bpp = camflags & camopt_mono ? 1 : 2;
+            avi_width = xpixels;
+            avi_height = ypixels;
+            avi_framelen = xpixels * ypixels*avi_bpp;
+            avi_frames = 0;
+            avi_frametime = 200000; // dummy for now
 
-                    if (shown) i = FindFirst("*.BMP", ATTR_MASK&~ATTR_VOLUME, &searchfile);
-                    else {
-                        i = 0; //force exit
-                        printf(whi tabx0 taby3 "\nNo suitable\nFiles found" del del);
-                        brstate = s_quitshow;
+            if (startavi()) {
+                printf(bot "Error StartAVI  " del del);
+                FSfclose(fptr);
+                break;
+            }
+
+            cam_grabenable(camen_grab, 7, 0);
+            campage=0;
+            camstate = s_waitavi;
+            break;
+
+
+        case s_waitavi:
+
+            if (avi_frames) if (butpress) {//ensure at least one frame to avoid creating dodgy file
+                cam_grabdisable();
+                    printf(bot tabx12 "Ending");
+                    avi_frametime = rectime / avi_frames; // get correct framerate on playback
+                    if (finishavi()) {
+                        printf(bot "Error EndAVI  " del del);
+                        FSfclose(fptr);
                     }
 
-                } // end of files
-            }// while bad file
-            while (i);
+                    camstate = s_camrestart;
+                    break;
+                }
 
-            showtimer = 0;
+            if (cam_newframe == 0) break; //got a new frame ?
+
+            cam_grabenable(camen_grab,7+(campage?0:(avi_framelen+8)),0); // start grab to other page
+            if (camflags & camopt_mono) monopalette(0, 255);
+
+            // add chunk header before image data
+            i=campage?(avi_framelen+8):0;
+            cambuffer[i++] = '0';
+            cambuffer[i++] = '0';
+            cambuffer[i++] = 'd';
+            cambuffer[i++] = 'c';
+            cambuffer[i++] = avi_framelen;
+            cambuffer[i++] = avi_framelen >> 8;
+            cambuffer[i++] = 0;
+            cambuffer[i++] = 0;
+
+            dispimage(0, 12, xpixels, ypixels, (camflags & camopt_mono) ? (img_mono | img_revscan) : (img_rgb565 | img_revscan), cambuffer + i);
+
+            if (avi_bpp == 1) flipcambuf(xpixels, ypixels, i); // mono AVIs have reverse scan direction
+
+
+            if (FSfwrite(&cambuffer[i-8], avi_framelen + 8, 1, fptr) == 0) {
+                printf(bot "Error:WriteFrame" del del);
+                FSfclose(fptr);
+                cam_grabdisable();
+                break;
+            }
+
+            campage=campage?0:1; // page swap
+            i = TMR5;
+            if (IFS0bits.T5IF) i += 0x10000; // rolled - assume only once
+            rectime += (i * 256 / (clockfreq / 1000000)); // uS
+
+            printf(tabx0 taby11 yel "Frame %04d %4d secs", ++avi_frames, rectime / 1000000);
+            TMR5 = 0;
+            IFS0bits.T5IF = 0;
+
+            camstate = s_waitavi;
+
+            break;
+
+        case s_camgrab:
+            printf(bot whi);
+            camstate = s_camrestart; // default next state
+            if (!cardmounted) {
+                printf(inv"No Card         " inv del);
+                break;
+            }
+
+            cam_grabdisable();
+
+            i = FSchdir("\\CAMERA");
+            if (i) {
+                FSmkdir("CAMERA");
+                FSchdir("CAMERA");
+            }
+
+            i = 0;
+            do { // find first unused filename
+                docamname(camfile++, ct_bmp);
+                printf(bot "%-21s", camname);
+                fptr = FSfopen(camname, FS_READ);
+                i = (fptr != NULL);
+                if (i) FSfclose(fptr);
+            } while (i);
+
+            if (!(camflags & camopt_mono)) conv16_24(xpixels * ypixels, 8); // RGB565 to 888
+
+            fptr = FSfopen(camname, FS_WRITE);
+            FSchdir("\\"); // exit dir for easier tidyup if error
+
+            i = writebmpheader(xpixels, ypixels, (camflags & camopt_mono) ? 1 : 3);
+            if (i == 0) {
+                FSfclose(fptr);
+                printf("Err writing header" bot "OK");
+                camstate = s_camwait;
+                break;
+            }
+            i = FSfwrite(&cambuffer[8], xpixels * ypixels * ((camflags & camopt_mono) ? 1 : 3), 1, fptr);
+            FSfclose(fptr);
+            if (i == 0) {
+                printf("Err writing image" bot "OK");
+                camstate = s_camwait;
+                break;
+            }
 
 
             break;
 
-
-        case s_quitshow:
-            FSchdir("..");
-            brstate = s_restartbrowse;
+        case s_camwait:
+            if (!butpress) break;
+            camstate = s_camlive;
+            cam_grabenable(camen_start, 7, 0);
             break;
 
-        default: brstate = s_startbrowse;
-    } //switch(brstate
+        case s_camquit:
+            camstate = s_camstart;
+            cam_enable(0);
+            return ("");
 
-    // END BROWSER STUFF */
+            break;
 
-    if(butpress & powerbut) {
-        return(""); // exit with nonzero value to indicate we want to quit
-    }
+
+    } //switch camstate
 
     return(0);
 }
